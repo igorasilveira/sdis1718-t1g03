@@ -1,23 +1,24 @@
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 
 import static java.lang.System.exit;
 
-public class BackupFile {
+public class FileClass {
 
+    File file;
     private String id;
-    private byte[] body;
     private int numberChunks = 0;
 
-    public BackupFile(String path) {
+    public FileClass(String path) {
 
-        File file = new File(path);
+        file = new File(path);
 
         if (!file.isFile()) {
             System.out.println("[ERROR] No valid file found from path " + path + ".");
+            file = null;
         } else {
             System.out.println("Processing file...");
 
@@ -29,7 +30,7 @@ public class BackupFile {
             } catch (IOException e) {
                 e.printStackTrace();
                 System.out.println("[ERROR] Could not get file owner successfully.");
-                exit(1);
+                file = null;
             }
 
             try {
@@ -37,7 +38,7 @@ public class BackupFile {
             } catch (IOException e) {
                 e.printStackTrace();
                 System.out.println("[ERROR] Could not get last modified date successfully.");
-                exit(1);
+                file = null;
             }
 
             try {
@@ -51,12 +52,28 @@ public class BackupFile {
         }
     }
 
-    public String getId() {
-        return id;
+    public void backupFile() throws IOException {
+
+        int sizeOfFiles = 1024 * 64;// 64KB
+        byte[] buffer = new byte[sizeOfFiles];
+
+        String fileName = file.getName();
+
+        //try-with-resources to ensure closing stream
+        try (FileInputStream fis = new FileInputStream(file);
+             BufferedInputStream bis = new BufferedInputStream(fis)) {
+
+            int bytesAmount = 0;
+            while ((bytesAmount = bis.read(buffer)) > 0) {
+                numberChunks++;
+                //TODO PUTCHUNK message
+                System.out.println("Sending chunk #" + numberChunks);
+            }
+        }
     }
 
-    public byte[] getBody() {
-        return body;
+    public String getId() {
+        return id;
     }
 
     public int getNumberChunks() {
