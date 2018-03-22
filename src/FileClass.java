@@ -10,6 +10,7 @@ public class FileClass {
 
     File file;
     private String id;
+    private int replicationDeg = 0;
     private int numberChunks = 0;
 
     public FileClass(String path) {
@@ -52,7 +53,11 @@ public class FileClass {
         }
     }
 
-    public void backupFile() throws IOException {
+    public void putChunk(int repDeg) throws IOException {
+
+        replicationDeg = repDeg;
+
+        int replyCounter = 0;
 
         int sizeOfFiles = 1024 * 64;// 64KB
         byte[] buffer = new byte[sizeOfFiles];
@@ -66,10 +71,15 @@ public class FileClass {
             int bytesAmount = 0;
             while ((bytesAmount = bis.read(buffer)) > 0) {
                 numberChunks++;
-                //TODO PUTCHUNK message
+                //TODO send PUTCHUNK message
                 System.out.println("Sending chunk #" + numberChunks);
             }
         }
+    }
+
+    public boolean storeChunk() {
+        //TODO reply to PUTCHUNK message with STORED
+        return true;
     }
 
     public String getId() {
