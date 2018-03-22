@@ -11,7 +11,7 @@ public class Peer{
 
         System.out.println("Initializing Peer with ID 1...");
 
-        MulticastSocket socket = new MulticastSocket(4446/*Integer.parseInt(args[1])*/);//mcast_port
+        /*MulticastSocket socket = new MulticastSocket(4446*//*Integer.parseInt(args[1])*//*);//mcast_port
         InetAddress group = InetAddress.getByName("227.0.0.2");//mcast_addr
         socket.joinGroup(group);
         while(running){
@@ -28,13 +28,13 @@ public class Peer{
             if (!response.equals(msg))
                 System.out.println("Response: " + response);
 
-        }
+        }*/
     }
 
     public void backupFile(String filePath) throws IOException {
         FileClass fileClass = new FileClass(filePath);
 
-        if (fileClass != null) {
+        if (fileClass.isValid()) {
             fileClass.backupFile();
         }
     }

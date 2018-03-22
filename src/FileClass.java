@@ -76,6 +76,10 @@ public class FileClass {
         return id;
     }
 
+    public boolean isValid() {
+        return file != null;
+    }
+
     public int getNumberChunks() {
         return numberChunks;
     }
