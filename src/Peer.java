@@ -9,29 +9,46 @@ public class Peer{
 
         peer_id = id;
 
-        System.out.println("Initializing Peer with ID 1...");
+        System.out.println("Initializing Peer with ID " + id + ".");
 
         if (!isInitiatior) {
-            MulticastSocket socket = new MulticastSocket(4446/*Integer.parseInt(args[1])*/);//mcast_port
-            InetAddress group = InetAddress.getByName("227.0.0.2");//mcast_addr
-            socket.joinGroup(group);
+            MulticastSocket socket_mc = new MulticastSocket(4446);//mcast_port
+            InetAddress mc = InetAddress.getByName("224.0.0.1");//mcast_addr
+            socket_mc.joinGroup(mc);
+            
+            MulticastSocket socket_mdb = new MulticastSocket(4447);
+            InetAddress mdb = InetAddress.getByName("224.0.0.2");//mcast_addr
+            socket_mdb.joinGroup(mdb);
+            
             while (running) {
-                String msg = "From peer_id<" + peer_id + ">";
+                /*String msg = "From peer_id<" + peer_id + ">";
                 DatagramPacket test = new DatagramPacket(msg.getBytes(), msg.length(),
                         group, 4446);
-                socket.send(test);
+                socket.send(test);*/
 
                 byte[] buf = new byte[1000];
 
                 DatagramPacket recv = new DatagramPacket(buf, buf.length);
-                socket.receive(recv);
+                socket_mdb.receive(recv);
 
                 String response = new String(recv.getData(), recv.getOffset(), recv.getLength());
-
+				System.out.println("Response: " + response);
+				
                 //TODO receber mensagem, fazer decode dela e chamar metodo correspondente
+               
+				String[] response_get = response.split("\\s+");
+							
+                if (response_get[0].equals("PUTCHUNK")){
+                	byte data[] = recv.getData();
+                	String fileName = "./assets/id" + response_get[1];//fileName for chunk
+					FileOutputStream out = new FileOutputStream(fileName);//create file
+					out.write(data);
+					out.close();
+                	FileClass receivedChunk = new FileClass(fileName);
+					receivedChunk.storeChunk();
+                }
 
-                if (!response.equals(msg))
-                    System.out.println("Response: " + response);
+				
 
             }
         }

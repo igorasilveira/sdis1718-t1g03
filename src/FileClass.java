@@ -3,6 +3,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
+import java.net.*;
 
 import static java.lang.System.exit;
 
@@ -12,6 +13,7 @@ public class FileClass {
     private String id;
     private int replicationDeg = 0;
     private int numberChunks = 0;
+    private String message;
 
     public FileClass(String path) {
 
@@ -67,19 +69,60 @@ public class FileClass {
         //try-with-resources to ensure closing stream
         try (FileInputStream fis = new FileInputStream(file);
              BufferedInputStream bis = new BufferedInputStream(fis)) {
-
+			
             int bytesAmount = 0;
             while ((bytesAmount = bis.read(buffer)) > 0) {
                 numberChunks++;
                 //TODO send PUTCHUNK message
+                
+		        MulticastSocket socket_mc = new MulticastSocket(4446);//mcast_port
+		        InetAddress mc = InetAddress.getByName("224.0.0.1");//mcast_addr
+		        socket_mc.joinGroup(mc);
+		        
+		        MulticastSocket socket_mdb = new MulticastSocket(4447);
+		        InetAddress mdb = InetAddress.getByName("224.0.0.2");//mcast_addr
+		        socket_mdb.joinGroup(mdb);
+				    
+		        String msg = "PUTCHUNK NR" + numberChunks;
+                DatagramPacket test = new DatagramPacket(msg.getBytes(), msg.length(),
+                        mdb, 4447);
+                socket_mdb.send(test);//Sends data chunk
                 System.out.println("Sending chunk #" + numberChunks);
+                
+                byte[] buf = new byte[1000];
+
+                DatagramPacket recv = new DatagramPacket(buf, buf.length);
+                socket_mc.receive(recv);//confirmation message from peer
+                
+                String response = new String(recv.getData(), recv.getOffset(), recv.getLength());
+                String[] response_get = response.split("\\s+");
+								
+                if (response_get[0].equals("STORED")){
+		            System.out.println("Confirmation message: " + response);
+                }
+                
             }
         }
     }
 
-    public boolean storeChunk() {
+    public boolean storeChunk() throws IOException {
         //TODO reply to PUTCHUNK message with STORED
-        return true;
+		
+
+    	MulticastSocket socket_mc = new MulticastSocket(4446);//mcast_port
+		InetAddress mc = InetAddress.getByName("224.0.0.1");//mcast_addr
+		socket_mc.joinGroup(mc);
+				
+		MulticastSocket socket_mdb = new MulticastSocket(4447);
+		InetAddress mdb = InetAddress.getByName("224.0.0.2");//mcast_addr
+		socket_mdb.joinGroup(mdb);
+		
+    	String msg = "STORED";
+		DatagramPacket test = new DatagramPacket(msg.getBytes(), msg.length(),
+					        mc, 4446);
+		socket_mc.send(test);
+
+	    return true;
     }
 
     public String getId() {
