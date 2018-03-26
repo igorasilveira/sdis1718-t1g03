@@ -56,17 +56,22 @@ public class Peer implements Runnable {
 
         if (messageReceived.getMessageType() == "PUTCHUNK"){
 
-            String path = "./assets/" + peer_id + "/" + messageReceived.getFileId() + "/" + messageReceived.getChunkNo();
-            File file = new File(path);
+            String dir = "../assets/Peer_" + peer_id + "/" + messageReceived.getFileId() + "/";
+            String path = messageReceived.getChunkNo();
+            File dirF = new File(dir);
+            File file = new File(dir + path);
 
             if (!file.isFile()) {
+              dirF.mkdirs();
 
                 byte data[] = recv.getData();
 //                	String fileName = "./assets/id" + response_get[1];//fileName for chunk
-                FileOutputStream out = new FileOutputStream(path);//create file
+                System.out.println("antes");
+                FileOutputStream out = new FileOutputStream(dir + path);//create file
+                System.out.println("depois");
                 out.write(data);
                 out.close();
-                FileClass receivedChunk = new FileClass(path, 1);
+                FileClass receivedChunk = new FileClass(dir + path, 1);
 
                 Message message = new Message();
                 message.setMessageType("STORED");
@@ -96,4 +101,3 @@ public class Peer implements Runnable {
         }
     }
 }
-

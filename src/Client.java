@@ -14,6 +14,6 @@ public class Client {
         Peer peer = new Peer(Integer.parseInt(args[0]), Boolean.valueOf(args[1]));
 
 		if (Boolean.valueOf(args[1]))
-        	peer.backupFile("./assets/TestFile", 2);
+        	peer.backupFile("../assets/TestFile", 1);
     }
 }

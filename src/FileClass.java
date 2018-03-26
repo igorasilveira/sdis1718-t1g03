@@ -71,8 +71,18 @@ public class FileClass {
             while ((bytesAmount = bis.read(buffer)) > 0) {
                 numberChunks++;
                 int currentRepDegree = 0;
+                long timeToWait = 500;
+                int tries = 0;
 
                 while (currentRepDegree != replicationDeg) {
+
+                    timeToWait *= 2;
+                    tries++;
+
+                    if (tries == 6) {
+                        System.out.println("Exceed maximum PUTCHUNK tries for chunk #" + numberChunks);
+                        System.exit(1);
+                    }
 
                     Message message = new Message();
                     message.setMessageType("PUTCHUNK");
@@ -94,19 +104,27 @@ public class FileClass {
 
                     System.out.println("Sending chunk #" + numberChunks);
 
-                    byte[] buf = new byte[1000];
+                    long elapsedTime = 0;
+                    while (elapsedTime < timeToWait) {
+                      long start = System.currentTimeMillis();
 
-                    DatagramPacket recv = new DatagramPacket(buf, buf.length);
-                    Peer.socket_mc.receive(recv);//confirmation message from peer
+                      byte[] buf = new byte[1000];
 
+                      DatagramPacket recv = new DatagramPacket(buf, buf.length);
+                      Peer.socket_mc.receive(recv);//confirmation message from peer
 
-                    String response = new String(recv.getData(), recv.getOffset(), recv.getLength());
+                      String response = new String(recv.getData(), recv.getOffset(), recv.getLength());
 
-                    Message messageReceived = new Message(response);
+                      Message messageReceived = new Message(response);
 
-                    if (messageReceived.getMessageType() == "STORED"){
+                      if (messageReceived.getMessageType() == "STORED"){
                         System.out.println("Confirmation message: " + response);
                         currentRepDegree++;
+                      }
+
+                      long elapsedWhile = System.currentTimeMillis() - start;
+                      elapsedTime =+ elapsedWhile;
+                      System.out.println("elapsedTime: " + elapsedTime);
                     }
                 }
             }
@@ -119,7 +137,7 @@ public class FileClass {
     	Peer.socket_mc = new MulticastSocket(4446);//mcast_port
 		InetAddress mc = InetAddress.getByName("224.0.0.1");//mcast_addr
 		Peer.socket_mc.joinGroup(mc);
-				
+
 		Peer.socket_mdb = new MulticastSocket(4447);
 		Peer.mdb = InetAddress.getByName("224.0.0.2");//mcast_addr
 		Peer.socket_mdb.joinGroup(Peer.mdb);
