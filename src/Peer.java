@@ -15,8 +15,8 @@ public class Peer {
     private Message controlMessage;
     private FileClass receivedChunk;
 
-    private MulticastSocket socket_mc, socket_mdb;
-    private InetAddress mc, mdb;
+    public static MulticastSocket socket_mc, socket_mdb;
+    public static InetAddress mc, mdb;
 
     public Peer(int id, boolean isInitiator) throws IOException {
 
@@ -77,7 +77,7 @@ public class Peer {
                 FileOutputStream out = new FileOutputStream(dir + path);//create file
                 out.write(data);
                 out.close();
-                receivedChunk = new FileClass(dir + path, 1, this);
+                receivedChunk = new FileClass(dir + path, 1);
 
                 controlMessage = new Message();
                 controlMessage.setMessageType("STORED");
@@ -114,42 +114,11 @@ public class Peer {
     }
 
     public void backupFile(String filePath, int replicationDeg) throws IOException, InterruptedException {
-        FileClass fileClass = new FileClass(filePath, replicationDeg, this);
+        FileClass fileClass = new FileClass(filePath, replicationDeg);
 
         if (fileClass.isValid()) {
             fileClass.putChunk();
         }
     }
 
-    public MulticastSocket getSocket_mc() {
-        return socket_mc;
-    }
-
-    public void setSocket_mc(MulticastSocket socket_mc) {
-        this.socket_mc = socket_mc;
-    }
-
-    public MulticastSocket getSocket_mdb() {
-        return socket_mdb;
-    }
-
-    public void setSocket_mdb(MulticastSocket socket_mdb) {
-        this.socket_mdb = socket_mdb;
-    }
-
-    public InetAddress getMc() {
-        return mc;
-    }
-
-    public void setMc(InetAddress mc) {
-        this.mc = mc;
-    }
-
-    public InetAddress getMdb() {
-        return mdb;
-    }
-
-    public void setMdb(InetAddress mdb) {
-        this.mdb = mdb;
-    }
 }
