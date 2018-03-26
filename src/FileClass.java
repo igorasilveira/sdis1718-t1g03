@@ -4,8 +4,10 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.net.*;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
-public class FileClass {
+public class FileClass implements Runnable {
 
     File file;
     private String id;
@@ -13,10 +15,19 @@ public class FileClass {
     private int numberChunks = 0;
     private String message;
 
-    public FileClass(String path, int repDegree) {
+    DatagramPacket packet;
+
+    private static Peer peer;
+
+    ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
+
+    public FileClass(String path, int repDegree, Peer peer1) {
 
         file = new File(path);
         replicationDeg = repDegree;
+        peer = peer1;
+
+        scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
 
         if (!file.isFile()) {
             System.out.println("[ERROR] No valid file found from path " + path + ".");
@@ -54,7 +65,7 @@ public class FileClass {
         }
     }
 
-    public void putChunk(Peer peer) throws IOException, InterruptedException {
+    public void putChunk() throws IOException, InterruptedException {
         //TODO verificar tamanho
 
         int sizeOfFiles = 1024 * 60;// 64KB
@@ -140,7 +151,7 @@ public class FileClass {
         }
     }
 
-    public boolean storeChunk(Message message, Peer peer) throws IOException {
+    public boolean storeChunk(Message message) throws IOException {
         //TODO reply to PUTCHUNK message with STORED
 
         peer.setSocket_mc(new MulticastSocket(4446));//mcast_port
@@ -153,9 +164,10 @@ public class FileClass {
 
     	String msg = message.toString();
 
-		DatagramPacket test = new DatagramPacket(msg.getBytes(), msg.length(),
+		packet = new DatagramPacket(msg.getBytes(), msg.length(),
 					        peer.getMc(), 4446);
-		peer.getSocket_mc().send(test);
+
+		scheduledThreadPoolExecutor.schedule(this::run, Utilities.randomMiliseconds(), TimeUnit.MILLISECONDS);
 
 	    return true;
     }
@@ -170,5 +182,18 @@ public class FileClass {
 
     public int getNumberChunks() {
         return numberChunks;
+    }
+
+    public ScheduledThreadPoolExecutor getScheduledThreadPoolExecutor() {
+        return scheduledThreadPoolExecutor;
+    }
+
+    @Override
+    public void run() {
+        try {
+            peer.getSocket_mc().send(packet);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

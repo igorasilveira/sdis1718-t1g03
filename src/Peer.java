@@ -1,28 +1,29 @@
 import javax.rmi.CORBA.Util;
 import java.io.*;
 import java.net.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-public class Peer implements Runnable {
+public class Peer {
 
     private static Boolean running = true;
     static int peer_id = 0;
     private String version = "";
 
+    private Message controlMessage;
+    private FileClass receivedChunk;
+
     private MulticastSocket socket_mc, socket_mdb;
     private InetAddress mc, mdb;
 
-    private static ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
-
-    public Peer(int id, boolean isInitiatior) throws IOException {
+    public Peer(int id, boolean isInitiator) throws IOException {
 
         peer_id = id;
         this.version = version;
 
         System.out.println("Initializing Peer with ID " + id + ".");
-
-        scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
 
         socket_mc = new MulticastSocket(4446);//mcast_port
         socket_mc.setSoTimeout(100);
@@ -32,8 +33,10 @@ public class Peer implements Runnable {
         socket_mdb = new MulticastSocket(4447);
         mdb = InetAddress.getByName("224.0.0.2");//mcast_addr
 
-        if (!isInitiatior) {
-            scheduledThreadPoolExecutor.scheduleWithFixedDelay(this::run, Utilities.randomMiliseconds(), Utilities.randomMiliseconds(), TimeUnit.MILLISECONDS);
+        if (!isInitiator) {
+            while (running) {
+                receiveMessages();
+            }
         }
     }
 
@@ -46,59 +49,75 @@ public class Peer implements Runnable {
         //TODO
         byte[] buf = new byte[1024 * 60];
 
-        DatagramPacket recv = new DatagramPacket(buf, buf.length);
-        socket_mdb.receive(recv);
+        DatagramPacket recvMDB = new DatagramPacket(buf, buf.length);
+        socket_mdb.receive(recvMDB);
 
-        String response = new String(recv.getData(), recv.getOffset(), recv.getLength());
-        System.out.println("Response: " + response);
+        String responseMDB = new String(recvMDB.getData(), recvMDB.getOffset(), recvMDB.getLength());
+        System.out.println("Response: " + responseMDB);
+
 
         //TODO receber mensagem, fazer decode dela e chamar metodo correspondente
-        Message messageReceived = new Message(response);
+        Message messageReceivedMDB = new Message(responseMDB);
 
-        if (messageReceived.getMessageType() == "PUTCHUNK"){
+        /* MDB CHANNEL */
+        if (messageReceivedMDB.getMessageType() == "PUTCHUNK"){
 
-            String dir = "../assets/Peer_" + peer_id + "/" + messageReceived.getFileId() + "/";
-            String path = messageReceived.getChunkNo();
+            int storedCount = 0;
+
+            String dir = "../assets/Peer_" + peer_id + "/" + messageReceivedMDB.getFileId() + "/";
+            String path = messageReceivedMDB.getChunkNo();
             File dirF = new File(dir);
             File file = new File(dir + path);
 
             if (!file.isFile()) {
               dirF.mkdirs();
 
-                byte data[] = recv.getData();
+                byte data[] = recvMDB.getData();
 //                	String fileName = "./assets/id" + response_get[1];//fileName for chunk
                 FileOutputStream out = new FileOutputStream(dir + path);//create file
                 out.write(data);
                 out.close();
-                FileClass receivedChunk = new FileClass(dir + path, 1);
+                receivedChunk = new FileClass(dir + path, 1, this);
 
-                Message message = new Message();
-                message.setMessageType("STORED");
-                message.setFileId(messageReceived.getFileId());
-                message.setChunkNo(messageReceived.getChunkNo());
+                controlMessage = new Message();
+                controlMessage.setMessageType("STORED");
+                controlMessage.setFileId(messageReceivedMDB.getFileId());
+                controlMessage.setChunkNo(messageReceivedMDB.getChunkNo());
 
-                receivedChunk.storeChunk(message, this);
+                receivedChunk.storeChunk(controlMessage);
+
+                while (true) {
+                    DatagramPacket recvMC = new DatagramPacket(buf, buf.length);
+                    socket_mc.receive(recvMC);
+
+                    String responseMC = new String(recvMDB.getData(), recvMDB.getOffset(), recvMDB.getLength());
+                    System.out.println("Response: " + responseMC);
+
+                    Message messageReceivedMC = new Message(responseMC);
+
+                    if (messageReceivedMC.getSenderId().equals(peer_id)) {
+                        break;
+                    } else {
+                        storedCount++;
+
+                        if (storedCount >= Integer.parseInt(messageReceivedMDB.getReplicationDeg())) {
+                            receivedChunk.scheduledThreadPoolExecutor.shutdownNow();
+                            Files.delete(Paths.get(dir + path));
+                            break;
+                        }
+                    }
+                }
+
             }
         }
 
     }
 
     public void backupFile(String filePath, int replicationDeg) throws IOException, InterruptedException {
-        FileClass fileClass = new FileClass(filePath, replicationDeg);
+        FileClass fileClass = new FileClass(filePath, replicationDeg, this);
 
         if (fileClass.isValid()) {
-            fileClass.putChunk(this);
-        }
-    }
-
-    @Override
-    public void run() {
-        try {
-            socket_mdb.joinGroup(mdb);
-            receiveMessages();
-            socket_mdb.leaveGroup(mdb);
-        } catch (IOException e) {
-            e.printStackTrace();
+            fileClass.putChunk();
         }
     }
 
