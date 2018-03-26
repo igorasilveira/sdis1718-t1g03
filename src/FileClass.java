@@ -3,11 +3,11 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
-import java.net.*;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.net.*;
 import java.util.concurrent.TimeUnit;
 
-public class FileClass implements Runnable {
+public class FileClass implements Runnable{
 
     File file;
     private String id;
@@ -15,16 +15,17 @@ public class FileClass implements Runnable {
     private int numberChunks = 0;
     private String message;
 
-    DatagramPacket packet;
+    private static Peer peer;
+
+    private DatagramPacket packet;
 
     private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
 
-    public FileClass(String path, int repDegree) {
+    public FileClass(String path, int repDegree, Peer peer1) {
 
         file = new File(path);
         replicationDeg = repDegree;
-
-        scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
+        peer = peer1;
 
         if (!file.isFile()) {
             System.out.println("[ERROR] No valid file found from path " + path + ".");
@@ -62,7 +63,7 @@ public class FileClass implements Runnable {
         }
     }
 
-    public void putChunk() throws IOException, InterruptedException {
+    public void putChunk(Peer peer) throws IOException, InterruptedException {
         //TODO verificar tamanho
 
         int sizeOfFiles = 1024 * 60;// 64KB
@@ -104,11 +105,11 @@ public class FileClass implements Runnable {
                     String msg = message.toString();
 
                     DatagramPacket test = new DatagramPacket(msg.getBytes(), msg.length(),
-                            Peer.mdb, 4447);
+                            peer.getMdb(), 4447);
 
                 //TODO send PUTCHUNK message
 
-                    Peer.socket_mdb.send(test);//Sends data chunk
+                    peer.getSocket_mdb().send(test);//Sends data chunk
 
                     System.out.println("Sending chunk #" + numberChunks);
 
@@ -126,7 +127,7 @@ public class FileClass implements Runnable {
                       DatagramPacket recv = new DatagramPacket(buf, buf.length);
 
                       try {
-                          Peer.socket_mc.receive(recv);//confirmation message from peer
+                          peer.getSocket_mc().receive(recv);//confirmation message from peer
                           String response = new String(recv.getData(), recv.getOffset(), recv.getLength());
 
                           Message messageReceived = new Message(response);
@@ -146,25 +147,23 @@ public class FileClass implements Runnable {
         }
     }
 
-    public boolean storeChunk(Message message) throws IOException {
+    public boolean storeChunk(Message message, Peer peer) throws IOException {
         //TODO reply to PUTCHUNK message with STORED
 
-        Peer.socket_mc = new MulticastSocket(4446);//mcast_port
-		Peer.mc = InetAddress.getByName("224.0.0.1");//mcast_addr
-		Peer.socket_mc.joinGroup(Peer.mc);
+        peer.setSocket_mc(new MulticastSocket(4446));//mcast_port
+		peer.setMc(InetAddress.getByName("224.0.0.1"));//mcast_addr
+		peer.getSocket_mc().joinGroup(peer.getMc());
 
-		Peer.socket_mdb = new MulticastSocket(4447);
-		Peer.mdb = InetAddress.getByName("224.0.0.2");//mcast_addr
-		Peer.socket_mdb.joinGroup(Peer.mdb);
+		peer.setSocket_mdb(new MulticastSocket(4447));
+		peer.setMdb(InetAddress.getByName("224.0.0.2"));//mcast_addr
+		peer.getSocket_mdb().joinGroup(peer.getMdb());
 
     	String msg = message.toString();
 
 		packet = new DatagramPacket(msg.getBytes(), msg.length(),
-					        Peer.mc, 4446);
+					        peer.getMc(), 4446);
 
-
-        Peer.socket_mc.send(packet);
-		//scheduledThreadPoolExecutor.schedule(this::run, Utilities.randomMiliseconds(), TimeUnit.MILLISECONDS);
+    scheduledThreadPoolExecutor.schedule(this::run, Utilities.randomMiliseconds(), TimeUnit.MILLISECONDS);
 
 	    return true;
     }
@@ -182,15 +181,15 @@ public class FileClass implements Runnable {
     }
 
     public ScheduledThreadPoolExecutor getScheduledThreadPoolExecutor() {
-        return scheduledThreadPoolExecutor;
+      return scheduledThreadPoolExecutor;
     }
 
     @Override
     public void run() {
-        try {
-            Peer.socket_mc.send(packet);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+      try {
+        peer.getSocket_mc().send(packet);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
 }
