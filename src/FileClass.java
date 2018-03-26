@@ -62,6 +62,8 @@ public class FileClass {
 
         String fileName = file.getName();
 
+        FileOutputStream out = new FileOutputStream("../assets/initiator" + Peer.peer_id + "/" + id);
+
         //try-with-resources to ensure closing stream
         try (FileInputStream fis = new FileInputStream(file);
              BufferedInputStream bis = new BufferedInputStream(fis)) {

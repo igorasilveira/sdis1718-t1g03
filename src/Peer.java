@@ -79,7 +79,6 @@ public class Peer implements Runnable {
 
                 receivedChunk.storeChunk(message, this);
             }
-
         }
 
     }
