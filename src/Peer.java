@@ -8,8 +8,8 @@ public class Peer {
     static int peer_id = 0;
     private String version = "";
 
-    private MulticastSocket socket_mc, socket_mdb;
-    private InetAddress mc, mdb;
+    public static MulticastSocket socket_mc, socket_mdb;
+    public static InetAddress mc, mdb;
 
     FileClass receivedChunk;
     Message message;
@@ -71,7 +71,7 @@ public class Peer {
                 FileOutputStream out = new FileOutputStream(dir + path);//create file
                 out.write(data);
                 out.close();
-                receivedChunk = new FileClass(dir + path, 1, this);
+                receivedChunk = new FileClass(dir + path, 1);
 
                 message = new Message();
                 message.setMessageType("STORED");
@@ -85,10 +85,10 @@ public class Peer {
     }
 
     public void backupFile(String filePath, int replicationDeg) throws IOException, InterruptedException {
-        FileClass fileClass = new FileClass(filePath, replicationDeg, this);
+        FileClass fileClass = new FileClass(filePath, replicationDeg);
 
         if (fileClass.isValid()) {
-            fileClass.putChunk(this);
+            fileClass.putChunk();
         }
     }
 

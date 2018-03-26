@@ -15,17 +15,16 @@ public class FileClass implements Runnable{
     private int numberChunks = 0;
     private String message;
 
-    private static Peer peer;
-
     private DatagramPacket packet;
 
     private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
 
-    public FileClass(String path, int repDegree, Peer peer1) {
+    public FileClass(String path, int repDegree) {
 
         file = new File(path);
         replicationDeg = repDegree;
-        peer = peer1;
+
+        scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
 
         if (!file.isFile()) {
             System.out.println("[ERROR] No valid file found from path " + path + ".");
@@ -63,7 +62,7 @@ public class FileClass implements Runnable{
         }
     }
 
-    public void putChunk(Peer peer) throws IOException, InterruptedException {
+    public void putChunk() throws IOException, InterruptedException {
         //TODO verificar tamanho
 
         int sizeOfFiles = 1024 * 60;// 64KB
@@ -105,11 +104,11 @@ public class FileClass implements Runnable{
                     String msg = message.toString();
 
                     DatagramPacket test = new DatagramPacket(msg.getBytes(), msg.length(),
-                            peer.getMdb(), 4447);
+                            Peer.mdb, 4447);
 
                 //TODO send PUTCHUNK message
 
-                    peer.getSocket_mdb().send(test);//Sends data chunk
+                    Peer.socket_mdb.send(test);//Sends data chunk
 
                     System.out.println("Sending chunk #" + numberChunks);
 
@@ -127,7 +126,7 @@ public class FileClass implements Runnable{
                       DatagramPacket recv = new DatagramPacket(buf, buf.length);
 
                       try {
-                          peer.getSocket_mc().receive(recv);//confirmation message from peer
+                          Peer.socket_mc.receive(recv);//confirmation message from Peer
                           String response = new String(recv.getData(), recv.getOffset(), recv.getLength());
 
                           Message messageReceived = new Message(response);
@@ -147,21 +146,21 @@ public class FileClass implements Runnable{
         }
     }
 
-    public boolean storeChunk(Message message, Peer peer) throws IOException {
+    public boolean storeChunk(Message message, Peer Peer) throws IOException {
         //TODO reply to PUTCHUNK message with STORED
 
-        peer.setSocket_mc(new MulticastSocket(4446));//mcast_port
-		peer.setMc(InetAddress.getByName("224.0.0.1"));//mcast_addr
-		peer.getSocket_mc().joinGroup(peer.getMc());
+        Peer.setSocket_mc(new MulticastSocket(4446));//mcast_port
+		Peer.setMc(InetAddress.getByName("224.0.0.1"));//mcast_addr
+		Peer.socket_mc.joinGroup(Peer.mc);
 
-		peer.setSocket_mdb(new MulticastSocket(4447));
-		peer.setMdb(InetAddress.getByName("224.0.0.2"));//mcast_addr
-		peer.getSocket_mdb().joinGroup(peer.getMdb());
+		Peer.setSocket_mdb(new MulticastSocket(4447));
+		Peer.setMdb(InetAddress.getByName("224.0.0.2"));//mcast_addr
+		Peer.socket_mdb.joinGroup(Peer.mdb);
 
     	String msg = message.toString();
 
 		packet = new DatagramPacket(msg.getBytes(), msg.length(),
-					        peer.getMc(), 4446);
+					        Peer.mc, 4446);
 
     scheduledThreadPoolExecutor.schedule(this::run, Utilities.randomMiliseconds(), TimeUnit.MILLISECONDS);
 
@@ -187,7 +186,7 @@ public class FileClass implements Runnable{
     @Override
     public void run() {
       try {
-        peer.getSocket_mc().send(packet);
+        Peer.socket_mc.send(packet);
       } catch (IOException e) {
         e.printStackTrace();
       }
