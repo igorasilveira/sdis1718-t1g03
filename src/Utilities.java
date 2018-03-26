@@ -2,6 +2,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Random;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 public class Utilities {
     public static String encodeSHA256(String toEncode) throws NoSuchAlgorithmException {
@@ -19,10 +20,11 @@ public class Utilities {
         return hexString.toString();
     }
 
-    public static void timedSleep() throws InterruptedException {
+    public static int randomMiliseconds() {
         Random random = new Random();
 
         int randomDuration = random.nextInt(400);
-        Thread.sleep(randomDuration);
+
+        return randomDuration;
     }
 }
