@@ -146,15 +146,15 @@ public class FileClass implements Runnable{
         }
     }
 
-    public boolean storeChunk(Message message, Peer Peer) throws IOException {
+    public boolean storeChunk(Message message) throws IOException {
         //TODO reply to PUTCHUNK message with STORED
 
-        Peer.setSocket_mc(new MulticastSocket(4446));//mcast_port
-		Peer.setMc(InetAddress.getByName("224.0.0.1"));//mcast_addr
+        Peer.socket_mc = new MulticastSocket(4446);//mcast_port
+		Peer.mc = InetAddress.getByName("224.0.0.1");//mcast_addr
 		Peer.socket_mc.joinGroup(Peer.mc);
 
-		Peer.setSocket_mdb(new MulticastSocket(4447));
-		Peer.setMdb(InetAddress.getByName("224.0.0.2"));//mcast_addr
+		Peer.socket_mdb = new MulticastSocket(4447);
+		Peer.mdb = InetAddress.getByName("224.0.0.2");//mcast_addr
 		Peer.socket_mdb.joinGroup(Peer.mdb);
 
     	String msg = message.toString();
