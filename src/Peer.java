@@ -1,6 +1,8 @@
 import javax.rmi.CORBA.Util;
 import java.io.*;
 import java.net.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class Peer {
 
@@ -28,6 +30,7 @@ public class Peer {
 
         socket_mdb = new MulticastSocket(4447);
         mdb = InetAddress.getByName("224.0.0.2");//mcast_addr
+        socket_mdb.joinGroup(mdb);
 
         if (!isInitiatior) {
             while (running) {
@@ -46,9 +49,7 @@ public class Peer {
         byte[] buf = new byte[1024 * 60];
 
         DatagramPacket recvMDB = new DatagramPacket(buf, buf.length);
-        System.out.println("antes");
         socket_mdb.receive(recvMDB);
-        System.out.println("depois");
 
         String response = new String(recvMDB.getData(), recvMDB.getOffset(), recvMDB.getLength());
         System.out.println("Response: " + response);
@@ -57,6 +58,8 @@ public class Peer {
         Message messageReceivedMDB = new Message(response);
 
         if (messageReceivedMDB.getMessageType() == "PUTCHUNK"){
+
+            int storedCount = 0;
 
             String dir = "../assets/Peer_" + peer_id + "/" + messageReceivedMDB.getFileId() + "/";
             String path = messageReceivedMDB.getChunkNo();
@@ -78,7 +81,28 @@ public class Peer {
                 message.setFileId(messageReceivedMDB.getFileId());
                 message.setChunkNo(messageReceivedMDB.getChunkNo());
 
-                receivedChunk.storeChunk(message, this);
+                receivedChunk.storeChunk(message);
+
+                boolean toListen = true;
+                while (toListen) {
+                    DatagramPacket recvMC = new DatagramPacket(buf, buf.length);
+                    socket_mc.receive(recvMC);
+
+                    String responseMC = new String(recvMDB.getData(), recvMDB.getOffset(), recvMDB.getLength());
+                    //System.out.println("Response: " + responseMC);
+
+                    Message messageReceivedMC = new Message(responseMC);
+
+                    storedCount++;
+
+                    if (Integer.parseInt(messageReceivedMC.getSenderId()) == peer_id) {
+                        toListen = false;
+                        if (storedCount > Integer.parseInt(messageReceivedMDB.getReplicationDeg())) {
+                          Files.delete(Paths.get(dir + path));
+                          break;
+                        }
+                    }
+                }
             }
         }
 
