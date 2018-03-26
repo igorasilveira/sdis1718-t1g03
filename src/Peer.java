@@ -101,7 +101,7 @@ public class Peer {
                         storedCount++;
 
                         if (storedCount >= Integer.parseInt(messageReceivedMDB.getReplicationDeg())) {
-                            receivedChunk.scheduledThreadPoolExecutor.shutdownNow();
+                            receivedChunk.getScheduledThreadPoolExecutor().shutdownNow();
                             Files.delete(Paths.get(dir + path));
                             break;
                         }

@@ -17,7 +17,7 @@ public class FileClass implements Runnable {
 
     DatagramPacket packet;
 
-    ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
+    private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
 
     public FileClass(String path, int repDegree) {
 
@@ -162,7 +162,9 @@ public class FileClass implements Runnable {
 		packet = new DatagramPacket(msg.getBytes(), msg.length(),
 					        Peer.mc, 4446);
 
-		scheduledThreadPoolExecutor.schedule(this::run, Utilities.randomMiliseconds(), TimeUnit.MILLISECONDS);
+
+        Peer.socket_mc.send(packet);
+		//scheduledThreadPoolExecutor.schedule(this::run, Utilities.randomMiliseconds(), TimeUnit.MILLISECONDS);
 
 	    return true;
     }
