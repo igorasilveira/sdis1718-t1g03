@@ -54,7 +54,7 @@ public class FileClass {
         }
     }
 
-    public void putChunk() throws IOException, InterruptedException {
+    public void putChunk(Peer peer) throws IOException, InterruptedException {
         //TODO verificar tamanho
 
         int sizeOfFiles = 1024 * 60;// 64KB
@@ -96,11 +96,11 @@ public class FileClass {
                     String msg = message.toString();
 
                     DatagramPacket test = new DatagramPacket(msg.getBytes(), msg.length(),
-                            Peer.mdb, 4447);
+                            peer.getMdb(), 4447);
 
                 //TODO send PUTCHUNK message
 
-                    Peer.socket_mdb.send(test);//Sends data chunk
+                    peer.getSocket_mdb().send(test);//Sends data chunk
 
                     System.out.println("Sending chunk #" + numberChunks);
 
@@ -118,7 +118,7 @@ public class FileClass {
                       DatagramPacket recv = new DatagramPacket(buf, buf.length);
 
                       try {
-                          Peer.socket_mc.receive(recv);//confirmation message from peer
+                          peer.getSocket_mc().receive(recv);//confirmation message from peer
                           String response = new String(recv.getData(), recv.getOffset(), recv.getLength());
 
                           Message messageReceived = new Message(response);
@@ -138,22 +138,22 @@ public class FileClass {
         }
     }
 
-    public boolean storeChunk(Message message) throws IOException {
+    public boolean storeChunk(Message message, Peer peer) throws IOException {
         //TODO reply to PUTCHUNK message with STORED
 
-    	Peer.socket_mc = new MulticastSocket(4446);//mcast_port
-		InetAddress mc = InetAddress.getByName("224.0.0.1");//mcast_addr
-		Peer.socket_mc.joinGroup(mc);
+        peer.setSocket_mc(new MulticastSocket(4446));//mcast_port
+		peer.setMc(InetAddress.getByName("224.0.0.1"));//mcast_addr
+		peer.getSocket_mc().joinGroup(peer.getMc());
 
-		Peer.socket_mdb = new MulticastSocket(4447);
-		Peer.mdb = InetAddress.getByName("224.0.0.2");//mcast_addr
-		Peer.socket_mdb.joinGroup(Peer.mdb);
+		peer.setSocket_mdb(new MulticastSocket(4447));
+		peer.setMdb(InetAddress.getByName("224.0.0.2"));//mcast_addr
+		peer.getSocket_mdb().joinGroup(peer.getMdb());
 
     	String msg = message.toString();
 
 		DatagramPacket test = new DatagramPacket(msg.getBytes(), msg.length(),
-					        mc, 4446);
-		Peer.socket_mc.send(test);
+					        peer.getMc(), 4446);
+		peer.getSocket_mc().send(test);
 
 	    return true;
     }
