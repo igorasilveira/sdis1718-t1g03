@@ -5,8 +5,6 @@ import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.net.*;
 
-import static java.lang.System.exit;
-
 public class FileClass {
 
     File file;
@@ -15,9 +13,10 @@ public class FileClass {
     private int numberChunks = 0;
     private String message;
 
-    public FileClass(String path) {
+    public FileClass(String path, int repDegree) {
 
         file = new File(path);
+        replicationDeg = repDegree;
 
         if (!file.isFile()) {
             System.out.println("[ERROR] No valid file found from path " + path + ".");
@@ -55,13 +54,10 @@ public class FileClass {
         }
     }
 
-    public void putChunk(int repDeg) throws IOException {
+    public void putChunk() throws IOException, InterruptedException {
+        //TODO verificar tamanho
 
-        replicationDeg = repDeg;
-
-        int replyCounter = 0;
-
-        int sizeOfFiles = 1024 * 64;// 64KB
+        int sizeOfFiles = 1024 * 60;// 64KB
         byte[] buffer = new byte[sizeOfFiles];
 
         String fileName = file.getName();
@@ -69,45 +65,65 @@ public class FileClass {
         //try-with-resources to ensure closing stream
         try (FileInputStream fis = new FileInputStream(file);
              BufferedInputStream bis = new BufferedInputStream(fis)) {
-			
+
+            MulticastSocket socket_mc = new MulticastSocket(4446);//mcast_port
+            InetAddress mc = InetAddress.getByName("224.0.0.1");//mcast_addr
+            socket_mc.joinGroup(mc);
+
+            MulticastSocket socket_mdb = new MulticastSocket(4447);
+            InetAddress mdb = InetAddress.getByName("224.0.0.2");//mcast_addr
+            socket_mdb.joinGroup(mdb);
+
             int bytesAmount = 0;
             while ((bytesAmount = bis.read(buffer)) > 0) {
                 numberChunks++;
-                //TODO send PUTCHUNK message
-                
-		        MulticastSocket socket_mc = new MulticastSocket(4446);//mcast_port
-		        InetAddress mc = InetAddress.getByName("224.0.0.1");//mcast_addr
-		        socket_mc.joinGroup(mc);
-		        
-		        MulticastSocket socket_mdb = new MulticastSocket(4447);
-		        InetAddress mdb = InetAddress.getByName("224.0.0.2");//mcast_addr
-		        socket_mdb.joinGroup(mdb);
-				    
-		        String msg = "PUTCHUNK NR" + numberChunks;
-                DatagramPacket test = new DatagramPacket(msg.getBytes(), msg.length(),
-                        mdb, 4447);
-                socket_mdb.send(test);//Sends data chunk
-                System.out.println("Sending chunk #" + numberChunks);
-                
-                byte[] buf = new byte[1000];
+                int currentRepDegree = 0;
 
-                DatagramPacket recv = new DatagramPacket(buf, buf.length);
-                socket_mc.receive(recv);//confirmation message from peer
-                
-                String response = new String(recv.getData(), recv.getOffset(), recv.getLength());
-                String[] response_get = response.split("\\s+");
-								
-                if (response_get[0].equals("STORED")){
-		            System.out.println("Confirmation message: " + response);
+                while (currentRepDegree != replicationDeg) {
+
+                    Message message = new Message();
+                    message.setMessageType("PUTCHUNK");
+                    message.setFileId(id);
+                    message.setReplicationDeg(replicationDeg);
+                    message.setChunkNo(String.valueOf(numberChunks));
+
+                    String v = new String( buffer, Charset.forName("UTF-8") );
+                    message.setBody(v);
+
+                    String msg = message.toString();
+
+                    DatagramPacket test = new DatagramPacket(msg.getBytes(), msg.length(),
+                            mdb, 4447);
+
+                //TODO send PUTCHUNK message
+
+                    Utilities.timedSleep();
+
+                    socket_mdb.send(test);//Sends data chunk
+
+                    System.out.println("Sending chunk #" + numberChunks);
+
+                    byte[] buf = new byte[1000];
+
+                    DatagramPacket recv = new DatagramPacket(buf, buf.length);
+                    socket_mc.receive(recv);//confirmation message from peer
+
+
+                    String response = new String(recv.getData(), recv.getOffset(), recv.getLength());
+
+                    Message messageReceived = new Message(response);
+
+                    if (messageReceived.getMessageType() == "STORED"){
+                        System.out.println("Confirmation message: " + response);
+                        currentRepDegree++;
+                    }
                 }
-                
             }
         }
     }
 
-    public boolean storeChunk() throws IOException {
+    public boolean storeChunk(Message message) throws IOException {
         //TODO reply to PUTCHUNK message with STORED
-		
 
     	MulticastSocket socket_mc = new MulticastSocket(4446);//mcast_port
 		InetAddress mc = InetAddress.getByName("224.0.0.1");//mcast_addr
@@ -116,8 +132,9 @@ public class FileClass {
 		MulticastSocket socket_mdb = new MulticastSocket(4447);
 		InetAddress mdb = InetAddress.getByName("224.0.0.2");//mcast_addr
 		socket_mdb.joinGroup(mdb);
-		
-    	String msg = "STORED";
+
+    	String msg = message.toString();
+
 		DatagramPacket test = new DatagramPacket(msg.getBytes(), msg.length(),
 					        mc, 4446);
 		socket_mc.send(test);

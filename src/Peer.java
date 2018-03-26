@@ -3,11 +3,13 @@ import java.net.*;
 
 public class Peer{
     private static Boolean running = true;
-    private static int peer_id = 0;
+    static int peer_id = 0;
+    private String version = "";
 
     public Peer(int id, boolean isInitiatior) throws IOException {
 
         peer_id = id;
+        this.version = version;
 
         System.out.println("Initializing Peer with ID " + id + ".");
 
@@ -35,17 +37,23 @@ public class Peer{
 				System.out.println("Response: " + response);
 				
                 //TODO receber mensagem, fazer decode dela e chamar metodo correspondente
-               
-				String[] response_get = response.split("\\s+");
+                Message messageReceived = new Message(response);
 							
-                if (response_get[0].equals("PUTCHUNK")){
+                if (messageReceived.getMessageType() == "PUTCHUNK"){
                 	byte data[] = recv.getData();
-                	String fileName = "./assets/id" + response_get[1];//fileName for chunk
+//                	String fileName = "./assets/id" + response_get[1];//fileName for chunk
+                	String fileName = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\" + peer_id + "\\id" + messageReceived.getChunkNo();//fileName for chunk
 					FileOutputStream out = new FileOutputStream(fileName);//create file
 					out.write(data);
 					out.close();
-                	FileClass receivedChunk = new FileClass(fileName);
-					receivedChunk.storeChunk();
+                	FileClass receivedChunk = new FileClass(fileName, 1);
+
+                    Message message = new Message();
+                    message.setMessageType("STORED");
+                    message.setFileId(messageReceived.getFileId());
+                    message.setChunkNo(messageReceived.getChunkNo());
+
+					receivedChunk.storeChunk(message);
                 }
 
 				
@@ -54,11 +62,11 @@ public class Peer{
         }
     }
 
-    public void backupFile(String filePath, int replicationDeg) throws IOException {
-        FileClass fileClass = new FileClass(filePath);
+    public void backupFile(String filePath, int replicationDeg) throws IOException, InterruptedException {
+        FileClass fileClass = new FileClass(filePath, replicationDeg);
 
         if (fileClass.isValid()) {
-            fileClass.putChunk(replicationDeg);
+            fileClass.putChunk();
         }
     }
 }

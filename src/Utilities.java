@@ -1,6 +1,7 @@
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Random;
 
 public class Utilities {
     public static String encodeSHA256(String toEncode) throws NoSuchAlgorithmException {
@@ -16,5 +17,12 @@ public class Utilities {
             hexString.append(hex);
         }
         return hexString.toString();
+    }
+
+    public static void timedSleep() throws InterruptedException {
+        Random random = new Random();
+
+        int randomDuration = random.nextInt(400);
+        Thread.sleep(randomDuration);
     }
 }
