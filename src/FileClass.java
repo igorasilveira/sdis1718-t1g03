@@ -114,22 +114,20 @@ public class FileClass {
 
                       try {
                           Peer.socket_mc.receive(recv);//confirmation message from peer
+                          String response = new String(recv.getData(), recv.getOffset(), recv.getLength());
+
+                          Message messageReceived = new Message(response);
+
+                          if (messageReceived.getMessageType() == "STORED"){
+                            System.out.println("Confirmation message: " + response);
+                            currentRepDegree++;
+                          }
                       } catch (SocketTimeoutException e) {
                       }
 
-
-                      String response = new String(recv.getData(), recv.getOffset(), recv.getLength());
-
-                      Message messageReceived = new Message(response);
-
-                      if (messageReceived.getMessageType() == "STORED"){
-                        System.out.println("Confirmation message: " + response);
-                        currentRepDegree++;
-                      }
-
                       long elapsedWhile = System.currentTimeMillis() - start;
-                      elapsedTime =+ elapsedWhile;
-                      System.out.println("elapsedTime: " + elapsedTime);
+                      elapsedTime = elapsedTime + elapsedWhile;
+                      System.out.println("Listening for: " + (timeToWait/1000.0) + " seconds");
                     }
                 }
             }

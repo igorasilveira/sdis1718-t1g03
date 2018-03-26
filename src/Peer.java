@@ -24,7 +24,7 @@ public class Peer implements Runnable {
         scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
 
         socket_mc = new MulticastSocket(4446);//mcast_port
-        socket_mc.setSoTimeout(Utilities.randomMiliseconds());
+        socket_mc.setSoTimeout(100);
         mc = InetAddress.getByName("224.0.0.1");//mcast_addr
         socket_mc.joinGroup(mc);
 
@@ -33,7 +33,6 @@ public class Peer implements Runnable {
         socket_mdb.joinGroup(mdb);
 
         if (!isInitiatior) {
-
             scheduledThreadPoolExecutor.scheduleWithFixedDelay(this::run, 0, Utilities.randomMiliseconds(), TimeUnit.MILLISECONDS);
         }
     }
