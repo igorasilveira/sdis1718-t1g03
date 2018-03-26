@@ -30,10 +30,9 @@ public class Peer implements Runnable {
 
         socket_mdb = new MulticastSocket(4447);
         mdb = InetAddress.getByName("224.0.0.2");//mcast_addr
-        socket_mdb.joinGroup(mdb);
 
         if (!isInitiatior) {
-            scheduledThreadPoolExecutor.scheduleWithFixedDelay(this::run, 0, Utilities.randomMiliseconds(), TimeUnit.MILLISECONDS);
+            scheduledThreadPoolExecutor.scheduleWithFixedDelay(this::run, Utilities.randomMiliseconds(), Utilities.randomMiliseconds(), TimeUnit.MILLISECONDS);
         }
     }
 
@@ -43,7 +42,8 @@ public class Peer implements Runnable {
                         group, 4446);
                 socket.send(test);*/
 
-        byte[] buf = new byte[1000];
+        //TODO
+        byte[] buf = new byte[1024 * 60];
 
         DatagramPacket recv = new DatagramPacket(buf, buf.length);
         socket_mdb.receive(recv);
@@ -66,9 +66,7 @@ public class Peer implements Runnable {
 
                 byte data[] = recv.getData();
 //                	String fileName = "./assets/id" + response_get[1];//fileName for chunk
-                System.out.println("antes");
                 FileOutputStream out = new FileOutputStream(dir + path);//create file
-                System.out.println("depois");
                 out.write(data);
                 out.close();
                 FileClass receivedChunk = new FileClass(dir + path, 1);
@@ -95,7 +93,9 @@ public class Peer implements Runnable {
     @Override
     public void run() {
         try {
+            socket_mdb.joinGroup(mdb);
             receiveMessages();
+            socket_mdb.leaveGroup(mdb);
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -74,7 +74,7 @@ public class FileClass {
                 long timeToWait = 500;
                 int tries = 0;
 
-                while (currentRepDegree != replicationDeg) {
+                while (currentRepDegree < replicationDeg) {
 
                     timeToWait *= 2;
                     tries++;
@@ -105,10 +105,15 @@ public class FileClass {
                     System.out.println("Sending chunk #" + numberChunks);
 
                     long elapsedTime = 0;
+                    boolean print = true;
                     while (elapsedTime < timeToWait) {
+                      if (print) {
+                        System.out.println("Listening for: " + (timeToWait/1000.0) + " seconds");
+                        print = false;
+                      }
                       long start = System.currentTimeMillis();
 
-                      byte[] buf = new byte[1000];
+                      byte[] buf = new byte[sizeOfFiles];
 
                       DatagramPacket recv = new DatagramPacket(buf, buf.length);
 
@@ -127,7 +132,6 @@ public class FileClass {
 
                       long elapsedWhile = System.currentTimeMillis() - start;
                       elapsedTime = elapsedTime + elapsedWhile;
-                      System.out.println("Listening for: " + (timeToWait/1000.0) + " seconds");
                     }
                 }
             }
