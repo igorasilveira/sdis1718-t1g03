@@ -111,7 +111,12 @@ public class FileClass {
                       byte[] buf = new byte[1000];
 
                       DatagramPacket recv = new DatagramPacket(buf, buf.length);
-                      Peer.socket_mc.receive(recv);//confirmation message from peer
+
+                      try {
+                          Peer.socket_mc.receive(recv);//confirmation message from peer
+                      } catch (SocketTimeoutException e) {
+                      }
+
 
                       String response = new String(recv.getData(), recv.getOffset(), recv.getLength());
 
