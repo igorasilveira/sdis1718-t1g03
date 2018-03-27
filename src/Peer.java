@@ -61,14 +61,15 @@ public class Peer {
 
             int storedCount = 0;
 
-            String dir = "../assets/Peer_" + peer_id + "/" + messageReceivedMDB.getFileId() + "/";
+//            String dir = "../assets/Peer_" + peer_id + "/" + messageReceivedMDB.getFileId() + "/";
+            String dir = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\" + messageReceivedMDB.getFileId() + "\\";
             String path = messageReceivedMDB.getChunkNo();
             File dirF = new File(dir);
             File file = new File(dir + path);
 
             if (!file.isFile()) {
-              dirF.mkdirs();
 
+                dirF.mkdirs();
                 byte data[] = recvMDB.getData();
 //                	String fileName = "./assets/id" + response_get[1];//fileName for chunk
                 FileOutputStream out = new FileOutputStream(dir + path);//create file

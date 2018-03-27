@@ -70,6 +70,16 @@ public class FileClass implements Runnable{
 
         String fileName = file.getName();
 
+        String dir = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Initiator\\";
+        String path = id;
+
+        File dirF = new File(dir);
+        File filePath = new File(dir + path + ".txt");
+
+        dirF.mkdirs();
+
+        PrintWriter out = new PrintWriter(dir + path + ".txt", "UTF-8");
+
         //try-with-resources to ensure closing stream
         try (FileInputStream fis = new FileInputStream(file);
              BufferedInputStream bis = new BufferedInputStream(fis)) {
@@ -132,6 +142,7 @@ public class FileClass implements Runnable{
                           Message messageReceived = new Message(response);
 
                           if (messageReceived.getMessageType() == "STORED"){
+                            out.print(messageReceived.getSenderId() + " ");
                             System.out.println("Confirmation message: " + response);
                             currentRepDegree++;
                           }
@@ -141,9 +152,11 @@ public class FileClass implements Runnable{
                       long elapsedWhile = System.currentTimeMillis() - start;
                       elapsedTime = elapsedTime + elapsedWhile;
                     }
+                    out.println();
                 }
             }
         }
+        out.close();
     }
 
     public boolean storeChunk(Message message) throws IOException {
