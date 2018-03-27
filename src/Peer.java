@@ -61,7 +61,7 @@ public class Peer {
 
             int storedCount = 0;
 
-//            String dir = "../assets/Peer_" + peer_id + "/" + messageReceivedMDB.getFileId() + "/";
+            //String dir = "../assets/Peer_" + peer_id + "/" + messageReceivedMDB.getFileId() + "/";
             String dir = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\" + messageReceivedMDB.getFileId() + "\\";
             String path = messageReceivedMDB.getChunkNo();
             File dirF = new File(dir);
@@ -83,26 +83,37 @@ public class Peer {
                 message.setChunkNo(messageReceivedMDB.getChunkNo());
 
                 receivedChunk.storeChunk(message);
-
                 boolean toListen = true;
+                boolean idListened = false;
                 while (toListen) {
                     DatagramPacket recvMC = new DatagramPacket(buf, buf.length);
+
                     socket_mc.receive(recvMC);
 
-                    String responseMC = new String(recvMDB.getData(), recvMDB.getOffset(), recvMDB.getLength());
+                    String responseMC = new String(recvMC.getData(), recvMC.getOffset(), recvMC.getLength());
                     //System.out.println("Response: " + responseMC);
 
                     Message messageReceivedMC = new Message(responseMC);
 
                     storedCount++;
 
-                    if (Integer.parseInt(messageReceivedMC.getSenderId()) == peer_id) {
-                        toListen = false;
-                        if (storedCount > Integer.parseInt(messageReceivedMDB.getReplicationDeg())) {
+                    if (Integer.parseInt(messageReceivedMC.getSenderId()) == peer_id)
+                        idListened = true;
+                        /*if (storedCount > Integer.parseInt(messageReceivedMDB.getReplicationDeg())) {
                           Files.delete(Paths.get(dir + path));
                           break;
-                        }
+                        }*/
+
+
+                    if (storedCount == Integer.parseInt(messageReceivedMDB.getReplicationDeg())){
+                        toListen = false;
+                        receivedChunk.getScheduledThreadPoolExecutor().shutdownNow();
+                        if (!idListened)
+                          Files.delete(Paths.get(dir + path));
+                        //break;
                     }
+
+
                 }
             }
         }

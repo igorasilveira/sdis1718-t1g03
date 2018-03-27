@@ -15,6 +15,6 @@ public class Client {
 
 		if (Boolean.valueOf(args[1]))
         	peer.backupFile("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\TestFile", 1);
-//        	peer.backupFile("./assets/TestFile", 1);
+        	//peer.backupFile("../assets/TestFile", 2);
     }
 }

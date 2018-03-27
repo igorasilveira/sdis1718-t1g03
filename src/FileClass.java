@@ -3,9 +3,8 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.*;
 import java.net.*;
-import java.util.concurrent.TimeUnit;
 
 public class FileClass implements Runnable{
 
@@ -71,6 +70,7 @@ public class FileClass implements Runnable{
         String fileName = file.getName();
 
         String dir = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Initiator\\";
+        //String dir = "../assets/Initiator/";
         String path = id;
 
         File dirF = new File(dir);
