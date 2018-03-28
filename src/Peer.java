@@ -82,11 +82,11 @@ public class Peer {
                     if (!file.isFile()) {
 
                         dirF.mkdirs();
-                        byte data[] = recvMDB.getData();
                         //                	String fileName = "./assets/id" + response_get[1];//fileName for chunk
-                        FileOutputStream out = new FileOutputStream(dir + path);//create file
-                        out.write(data);
-                        out.close();
+                        FileOutputStream fileOutputStream = new FileOutputStream(dir + path);
+                        fileOutputStream.write(messageReceivedMDB.getBody().getBytes());
+                        System.out.println("/////////////////////////////////////////\n" + messageReceivedMDB.getBody().length());
+                        fileOutputStream.close();
                         receivedChunk = new FileClass(dir + path, false);
 
                         message = new Message();

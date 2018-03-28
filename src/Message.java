@@ -43,6 +43,7 @@ public class Message {
                 }
                 chunkNo = fields[4];
                 replicationDeg = fields[5];
+                body = lines[1];
                 break;
             case "STORED":
                 messageType = "STORED";
@@ -68,10 +69,10 @@ public class Message {
                 }
                 if (lines.length != 2) {
                     System.out.println("Body is missing for CHUNK message");
-                System.out.println("---------------" + lines[1]);
                     return;
                 }
                 chunkNo = fields[4];
+                body = lines[1];
                 break;
             case "DELETE":
                 messageType = "DELETE";

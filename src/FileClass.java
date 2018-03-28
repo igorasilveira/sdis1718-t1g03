@@ -206,12 +206,10 @@ public class FileClass implements Runnable{
                         Peer.socket_mdr.receive(recv);//confirmation message from Peer
                         String response = new String(recv.getData(), recv.getOffset(), recv.getLength());
 
-                        System.out.println("ANTES DA MSSG");
                         Message messageReceived = new Message(response);
-                        System.out.println("Depois DA MSSG");
 
                         if (messageReceived.getMessageType() == "CHUNK"){
-                           // System.out.println("Confirmation message: " + response);
+                            System.out.println("Confirmation message: " + response);
                             bos.write(messageReceived.getBody().getBytes(), 0, messageReceived.getBody().getBytes().length);
                             continue;
                         }
