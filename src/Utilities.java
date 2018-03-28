@@ -1,8 +1,8 @@
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Random;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 public class Utilities {
     public static String encodeSHA256(String toEncode) throws NoSuchAlgorithmException {
@@ -26,5 +26,18 @@ public class Utilities {
         int randomDuration = random.nextInt(400);
 
         return randomDuration;
+    }
+
+    public static String deleteFromString(String toDelete, String deleteMe) {
+        String[] elements = toDelete.split(" ");
+
+        String result = "";
+
+        for (String elemen: elements) {
+            if (!deleteMe.equals(elemen))
+                result += elemen + " ";
+        }
+
+        return result;
     }
 }

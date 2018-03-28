@@ -10,6 +10,7 @@ public class FileClass implements Runnable{
 
     File file;
     private String id;
+    private String path = "";
     private int replicationDeg = 0;
     private int numberChunks = 0;
     private String message;
@@ -71,14 +72,15 @@ public class FileClass implements Runnable{
 
         String dir = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Initiator\\";
         //String dir = "../assets/Initiator/";
-        String path = id;
+        String pathFolder = id;
 
         File dirF = new File(dir);
-        File filePath = new File(dir + path + ".txt");
+        path = dir + pathFolder + ".txt";
+        File filePath = new File(path);
 
         dirF.mkdirs();
 
-        PrintWriter out = new PrintWriter(dir + path + ".txt", "UTF-8");
+        PrintWriter out = new PrintWriter(path, "UTF-8");
 
         //try-with-resources to ensure closing stream
         try (FileInputStream fis = new FileInputStream(file);
@@ -157,6 +159,12 @@ public class FileClass implements Runnable{
             }
         }
         out.close();
+
+//        String[] lines = getFileLines(path).split("\n");
+//
+//        //2 sera o numero do chunk alterado
+//        lines[1] = Utilities.deleteFromString(lines[1], "2");
+//        changeFileLines(lines);
     }
 
     public boolean storeChunk(Message message) throws IOException {
@@ -175,9 +183,52 @@ public class FileClass implements Runnable{
 		packet = new DatagramPacket(msg.getBytes(), msg.length(),
 					        Peer.mc, 4446);
 
-    scheduledThreadPoolExecutor.schedule(this::run, Utilities.randomMiliseconds(), TimeUnit.MILLISECONDS);
+        scheduledThreadPoolExecutor.schedule(this::run, Utilities.randomMiliseconds(), TimeUnit.MILLISECONDS);
 
 	    return true;
+    }
+
+    public void changeFileLines(String[] lines) {
+        try {
+            PrintWriter printWriter = new PrintWriter(path, "UTF-8");
+
+            for (String line : lines) {
+                printWriter.println(line);
+            }
+
+            printWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public String getFileLines(String path) {
+
+        String line = "", oldtext = "";
+        int count = 0;
+
+        BufferedReader reader = null;
+        try {
+            reader = new BufferedReader(new FileReader(path));
+            try
+            {
+                while((line = reader.readLine()) != null)
+                {
+                    oldtext += line + "\r\n";
+                }
+                reader.close();
+
+                return oldtext;
+            }
+            catch (IOException ioe)
+            {
+                ioe.printStackTrace();
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        return "";
     }
 
     public String getId() {
