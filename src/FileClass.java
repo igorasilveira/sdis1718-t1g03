@@ -209,7 +209,6 @@ public class FileClass implements Runnable{
                         Message messageReceived = new Message(response);
 
                         if (messageReceived.getMessageType() == "CHUNK"){
-                            System.out.println("Confirmation message: " + response);
                             bos.write(messageReceived.getBody().getBytes(), 0, messageReceived.getBody().getBytes().length);
                             continue;
                         }
