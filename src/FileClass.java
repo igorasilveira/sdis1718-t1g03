@@ -8,69 +8,76 @@ import java.net.*;
 
 public class FileClass implements Runnable{
 
+    public enum Protocol {NONE, BACKUP, RESTORE}
+
     File file;
     private String id;
     private String path = "";
     private int replicationDeg = 0;
-    private int numberChunks = 0;
+    private int numberChunks = -1;
     private String message;
+    private Protocol currentProtocol = Protocol.NONE;
 
     private DatagramPacket packet;
 
     private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
 
-    public FileClass(String path, int repDegree) {
+    public FileClass(String path, boolean restore) {
 
         file = new File(path);
-        replicationDeg = repDegree;
 
         scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
 
-        if (!file.isFile()) {
-            System.out.println("[ERROR] No valid file found from path " + path + ".");
-            file = null;
+        if (restore) {
+
         } else {
-            System.out.println("Processing file...");
 
-            String fileName = file.getName();
-            String owner = "", lastModified = "";
-
-            try {
-                owner = String.valueOf(Files.getOwner(Paths.get(file.getPath())));
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.out.println("[ERROR] Could not get file owner successfully.");
+            if (!file.isFile()) {
+                System.out.println("[ERROR] No valid file found from path " + path + ".");
                 file = null;
-            }
+            } else {
+                System.out.println("Processing file...");
 
-            try {
-                lastModified = String.valueOf(Files.getLastModifiedTime(Paths.get(file.getPath())));
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.out.println("[ERROR] Could not get last modified date successfully.");
-                file = null;
-            }
+                String fileName = file.getName();
+                String owner = "", lastModified = "";
 
-            try {
-                id = Utilities.encodeSHA256(fileName + owner + lastModified);
-                System.out.println("Encoded ID: " + id);
-            } catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            }
+                try {
+                    owner = String.valueOf(Files.getOwner(Paths.get(file.getPath())));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    System.out.println("[ERROR] Could not get file owner successfully.");
+                    file = null;
+                }
 
-            System.out.println("ID retrieved Successfully");
+                try {
+                    lastModified = String.valueOf(Files.getLastModifiedTime(Paths.get(file.getPath())));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    System.out.println("[ERROR] Could not get last modified date successfully.");
+                    file = null;
+                }
+
+                try {
+                    id = Utilities.encodeSHA256(fileName + owner + lastModified);
+                    System.out.println("Encoded ID: " + id);
+                } catch (NoSuchAlgorithmException e) {
+                    e.printStackTrace();
+                }
+
+                System.out.println("ID retrieved Successfully");
+            }
         }
+
     }
 
     public void putChunk() throws IOException, InterruptedException {
-        //TODO verificar tamanho
 
         int sizeOfFiles = 1024 * 60;// 64KB
         byte[] buffer = new byte[sizeOfFiles];
 
         String fileName = file.getName();
 
-        String dir = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Initiator\\";
+        String dir = "C:\\Users\\up201505172\\IdeaProjects\\sdis1718-t1g03\\assets\\Initiator\\";
         //String dir = "../assets/Initiator/";
         String pathFolder = id;
 
@@ -79,6 +86,8 @@ public class FileClass implements Runnable{
         File filePath = new File(path);
 
         dirF.mkdirs();
+
+        FileWriter fileWriter = new FileWriter(dir + "backed_up_files.txt", true);
 
         PrintWriter out = new PrintWriter(path, "UTF-8");
 
@@ -118,8 +127,6 @@ public class FileClass implements Runnable{
                     DatagramPacket test = new DatagramPacket(msg.getBytes(), msg.length(),
                             Peer.mdb, 4447);
 
-                //TODO send PUTCHUNK message
-
                     Peer.socket_mdb.send(test);//Sends data chunk
 
                     System.out.println("Sending chunk #" + numberChunks);
@@ -157,18 +164,65 @@ public class FileClass implements Runnable{
                     out.println();
                 }
             }
+            fileWriter.write(fileName + " " + id + System.lineSeparator());
+            fileWriter.close();
         }
         out.close();
+    }
 
-//        String[] lines = getFileLines(path).split("\n");
-//
-//        //2 sera o numero do chunk alterado
-//        lines[1] = Utilities.deleteFromString(lines[1], "2");
-//        changeFileLines(lines);
+    public void getChunk(int numberChunks) throws IOException {
+
+        int readChunks = -1;
+
+        int sizeOfFiles = 1024 * 60;// 64KB
+        byte[] buffer = new byte[sizeOfFiles];
+
+        try (FileOutputStream fos = new FileOutputStream(file);
+             BufferedOutputStream bos = new BufferedOutputStream(fos)) {
+
+
+            int bytesAmount = 0;
+            while (readChunks < numberChunks) {
+                readChunks++;
+
+                Message message = new Message();
+                message.setMessageType("GETCHUNK");
+                message.setFileId(id);
+                message.setChunkNo(String.valueOf(readChunks));
+
+                String msg = message.toString();
+
+                DatagramPacket test = new DatagramPacket(msg.getBytes(), msg.length(),
+                        Peer.mc, 4446);
+
+                Peer.socket_mc.send(test);//Sends data chunk
+
+                System.out.println("Requesting chunk #" + readChunks);
+
+                while (true) {
+                    DatagramPacket recv = new DatagramPacket(buffer, buffer.length);
+
+                    try {
+                        Peer.socket_mdr.receive(recv);//confirmation message from Peer
+                        String response = new String(recv.getData(), recv.getOffset(), recv.getLength());
+
+                        System.out.println("ANTES DA MSSG");
+                        Message messageReceived = new Message(response);
+                        System.out.println("Depois DA MSSG");
+
+                        if (messageReceived.getMessageType() == "CHUNK"){
+                           // System.out.println("Confirmation message: " + response);
+                            bos.write(messageReceived.getBody().getBytes(), 0, messageReceived.getBody().getBytes().length);
+                            continue;
+                        }
+                    } catch (SocketTimeoutException e) {
+                    }
+                }
+            }
+        }
     }
 
     public boolean storeChunk(Message message) throws IOException {
-        //TODO reply to PUTCHUNK message with STORED
 
         Peer.socket_mc = new MulticastSocket(4446);//mcast_port
 		Peer.mc = InetAddress.getByName("224.0.0.1");//mcast_addr
@@ -183,9 +237,31 @@ public class FileClass implements Runnable{
 		packet = new DatagramPacket(msg.getBytes(), msg.length(),
 					        Peer.mc, 4446);
 
+        currentProtocol = Protocol.BACKUP;
         scheduledThreadPoolExecutor.schedule(this::run, Utilities.randomMiliseconds(), TimeUnit.MILLISECONDS);
 
 	    return true;
+    }
+
+    public boolean sendChunk(Message message) throws IOException {
+
+        Peer.socket_mc = new MulticastSocket(4446);//mcast_port
+        Peer.mc = InetAddress.getByName("224.0.0.1");//mcast_addr
+        Peer.socket_mc.joinGroup(Peer.mc);
+
+        Peer.socket_mdr = new MulticastSocket(4448);
+        Peer.mdr = InetAddress.getByName("224.0.0.3");//mcast_addr
+        Peer.socket_mdr.joinGroup(Peer.mdr);
+
+        String msg = message.toString();
+
+        packet = new DatagramPacket(msg.getBytes(), msg.length(),
+                Peer.mdr, 4448);
+
+        currentProtocol = Protocol.RESTORE;
+        scheduledThreadPoolExecutor.schedule(this::run, Utilities.randomMiliseconds(), TimeUnit.MILLISECONDS);
+
+        return true;
     }
 
     public String getId() {
@@ -200,6 +276,14 @@ public class FileClass implements Runnable{
         return numberChunks;
     }
 
+    public int getReplicationDeg() {
+        return replicationDeg;
+    }
+
+    public void setReplicationDeg(int replicationDeg) {
+        this.replicationDeg = replicationDeg;
+    }
+
     public ScheduledThreadPoolExecutor getScheduledThreadPoolExecutor() {
       return scheduledThreadPoolExecutor;
     }
@@ -207,9 +291,22 @@ public class FileClass implements Runnable{
     @Override
     public void run() {
       try {
-        Peer.socket_mc.send(packet);
+          switch (currentProtocol) {
+              case BACKUP:
+                Peer.socket_mc.send(packet);
+                break;
+              case RESTORE:
+                Peer.socket_mdr.send(packet);
+                  break;
+              default:
+                  break;
+          }
       } catch (IOException e) {
         e.printStackTrace();
       }
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 }

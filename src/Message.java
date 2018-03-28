@@ -18,7 +18,7 @@ public class Message {
     }
 
     public Message(String string) {
-
+    //System.out.println("-----------------------------------------------------\n" + string);
         version = Client.version;
         senderId = String.valueOf(Peer.peer_id);
 
@@ -68,6 +68,7 @@ public class Message {
                 }
                 if (lines.length != 2) {
                     System.out.println("Body is missing for CHUNK message");
+                System.out.println("---------------" + lines[1]);
                     return;
                 }
                 chunkNo = fields[4];
