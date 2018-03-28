@@ -188,49 +188,6 @@ public class FileClass implements Runnable{
 	    return true;
     }
 
-    public void changeFileLines(String[] lines) {
-        try {
-            PrintWriter printWriter = new PrintWriter(path, "UTF-8");
-
-            for (String line : lines) {
-                printWriter.println(line);
-            }
-
-            printWriter.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public String getFileLines(String path) {
-
-        String line = "", oldtext = "";
-        int count = 0;
-
-        BufferedReader reader = null;
-        try {
-            reader = new BufferedReader(new FileReader(path));
-            try
-            {
-                while((line = reader.readLine()) != null)
-                {
-                    oldtext += line + "\r\n";
-                }
-                reader.close();
-
-                return oldtext;
-            }
-            catch (IOException ioe)
-            {
-                ioe.printStackTrace();
-            }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-
-        return "";
-    }
-
     public String getId() {
         return id;
     }

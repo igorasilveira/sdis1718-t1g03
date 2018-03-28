@@ -95,25 +95,26 @@ public class Peer {
 
                     Message messageReceivedMC = new Message(responseMC);
 
-                    storedCount++;
+                    if (messageReceivedMC.getMessageType() == "STORED") {
 
-                    if (Integer.parseInt(messageReceivedMC.getSenderId()) == peer_id)
-                        idListened = true;
+                        storedCount++;
+
+                        if (Integer.parseInt(messageReceivedMC.getSenderId()) == peer_id)
+                            idListened = true;
                         /*if (storedCount > Integer.parseInt(messageReceivedMDB.getReplicationDeg())) {
                           Files.delete(Paths.get(dir + path));
                           break;
                         }*/
 
 
-                    if (storedCount == Integer.parseInt(messageReceivedMDB.getReplicationDeg())){
-                        toListen = false;
-                        receivedChunk.getScheduledThreadPoolExecutor().shutdownNow();
-                        if (!idListened)
-                          Files.delete(Paths.get(dir + path));
-                        //break;
+                        if (storedCount == Integer.parseInt(messageReceivedMDB.getReplicationDeg())){
+                            toListen = false;
+                            receivedChunk.getScheduledThreadPoolExecutor().shutdownNow();
+                            if (!idListened)
+                                Files.delete(Paths.get(dir + path));
+                            //break;
+                        }
                     }
-
-
                 }
             }
         }
@@ -127,6 +128,51 @@ public class Peer {
             fileClass.putChunk();
         }
     }
+
+    public void changeFileLines(String[] lines) {
+        try {
+            //TODO change
+            PrintWriter printWriter = new PrintWriter("TODO", "UTF-8");
+
+            for (String line : lines) {
+                printWriter.println(line);
+            }
+
+            printWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public String getFileLines(String path) {
+
+        String line = "", oldtext = "";
+        int count = 0;
+
+        BufferedReader reader = null;
+        try {
+            reader = new BufferedReader(new FileReader(path));
+            try
+            {
+                while((line = reader.readLine()) != null)
+                {
+                    oldtext += line + "\r\n";
+                }
+                reader.close();
+
+                return oldtext;
+            }
+            catch (IOException ioe)
+            {
+                ioe.printStackTrace();
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        return "";
+    }
+
 
     public MulticastSocket getSocket_mc() {
         return socket_mc;
