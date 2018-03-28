@@ -3,6 +3,7 @@ import java.net.*;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 public class Peer {
 
@@ -57,20 +58,17 @@ public class Peer {
         if (protocol == 0) {
             byte[] buf = new byte[1024 * 60];
 
-            System.out.println("backup");
             try {
                 DatagramPacket recvMDB = new DatagramPacket(buf, buf.length);
-                System.out.println("antes");
                 socket_mdb.receive(recvMDB);
-                System.out.println("depois");
 
-                String responseMDB = new String(recvMDB.getData(), recvMDB.getOffset(), recvMDB.getLength());
-                System.out.println("Response: " + responseMDB);
+                ByteArrayInputStream baos = new ByteArrayInputStream(buf);
+                ObjectInputStream oos = new ObjectInputStream(baos);
+                Message messageReceivedMDB = (Message) oos.readObject();
 
-                Message messageReceivedMDB = new Message(responseMDB);
+                System.out.println("/////////////// --" + messageReceivedMDB.getMessageType() + "--");
 
-                if (messageReceivedMDB.getMessageType() == "PUTCHUNK") {
-
+                if (messageReceivedMDB.getMessageType().equals("PUTCHUNK")) {
                     int storedCount = 0;
 
                     //String dir = "../assets/Peer_" + peer_id + "/" + messageReceivedMDB.getFileId() + "/";
@@ -83,10 +81,12 @@ public class Peer {
 
                         dirF.mkdirs();
                         //                	String fileName = "./assets/id" + response_get[1];//fileName for chunk
+
                         FileOutputStream fileOutputStream = new FileOutputStream(dir + path);
-                        fileOutputStream.write(messageReceivedMDB.getBody().getBytes());
-                        System.out.println("/////////////////////////////////////////\n" + messageReceivedMDB.getBody().length());
-                        fileOutputStream.close();
+                        BufferedOutputStream bos = new BufferedOutputStream(fileOutputStream);
+                        bos.write(messageReceivedMDB.getBody());
+                        bos.close();
+
                         receivedChunk = new FileClass(dir + path, false);
 
                         message = new Message();
@@ -95,6 +95,7 @@ public class Peer {
                         message.setChunkNo(messageReceivedMDB.getChunkNo());
 
                         receivedChunk.storeChunk(message);
+
                         boolean toListen = true;
                         boolean idListened = false;
                         while (toListen) {
@@ -106,13 +107,11 @@ public class Peer {
 
                             }
 
-                            String responseMC = new String(recvMC.getData(), recvMC.getOffset(), recvMC.getLength());
-                            //System.out.println("Response: " + responseMC);
+                            baos = new ByteArrayInputStream(buf);
+                            oos = new ObjectInputStream(baos);
+                            Message messageReceivedMC = (Message) oos.readObject();
 
-                            Message messageReceivedMC = new Message(responseMC);
-
-                            if (messageReceivedMC.getMessageType() == "STORED") {
-
+                            if (messageReceivedMC.getMessageType().equals("STORED")) {
                                 storedCount++;
 
                                 if (Integer.parseInt(messageReceivedMC.getSenderId()) == peer_id)
@@ -137,7 +136,10 @@ public class Peer {
                 }
 
             } catch (SocketTimeoutException e) {
-                System.out.println("CATCHED");
+
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            } catch (EOFException e) {
 
             }
         }
@@ -146,12 +148,14 @@ public class Peer {
                 byte[] buf = new byte[1024 * 60];
                 DatagramPacket recvMC = new DatagramPacket(buf, buf.length);
                 socket_mc.receive(recvMC);
-                String responseMC = new String(recvMC.getData(), recvMC.getOffset(), recvMC.getLength());
-                System.out.println("Response: " + responseMC);
 
-                Message messageReceivedMC = new Message(responseMC);
+                ByteArrayInputStream bais = new ByteArrayInputStream(buf);
+                ObjectInputStream ois = new ObjectInputStream(bais);
+                Message messageReceivedMC = (Message) ois.readObject();
 
-                if (messageReceivedMC.getMessageType() == "GETCHUNK") {
+                System.out.println("/////////////// --" + messageReceivedMC.getMessageType() + "--");
+
+                if (messageReceivedMC.getMessageType().equals("GETCHUNK")) {
                     File dir = new File("C:\\Users\\up201505172\\IdeaProjects\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\" + messageReceivedMC.getFileId());
 
                     if (!dir.exists()) {
@@ -171,19 +175,23 @@ public class Peer {
                         message.setChunkNo(messageReceivedMC.getChunkNo());
 
                         try (FileInputStream fis = new FileInputStream(file);
-                             BufferedInputStream bis = new BufferedInputStream(fis)) {
-                            bis.read(buffer);
+                             ByteArrayOutputStream bioos = new ByteArrayOutputStream()) {
+                            int bytesRead = fis.read(buffer);
 
-                            String v = new String( buffer, Charset.forName("UTF-8") );
-                            message.setBody(v);
+                            bioos.write(buffer, 0, bytesRead);
+
+                            message.setBody(bioos.toByteArray());
 
                         } catch (FileNotFoundException e) {
 
                         }
 
-                        String msg = message.toString();
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream(1024 * 60);
+                        ObjectOutputStream oos = new ObjectOutputStream(baos);
+                        oos.writeObject(message);
+                        byte[] data = baos.toByteArray();
 
-                        DatagramPacket send = new DatagramPacket(msg.getBytes(), msg.length(), Peer.mdr, 4448);
+                        DatagramPacket send = new DatagramPacket(data, data.length, Peer.mdr, 4448);
 
                         Peer.socket_mdr.send(send);
                     }
@@ -191,6 +199,8 @@ public class Peer {
                 }
             } catch (SocketTimeoutException e1) {
 
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
             }
         }
     }

@@ -1,4 +1,6 @@
-public class Message {
+import java.io.Serializable;
+
+public class Message implements Serializable {
 
     private String version = Client.version;
     private String senderId = "";
@@ -6,7 +8,7 @@ public class Message {
     private String chunkNo = "";
     private String replicationDeg = "";
     private String messageType = "";
-    private String body = "";
+    private byte[] body = null;
 
     private static String CRLFCRLF = "0xD0xA0xD0xA";
 
@@ -43,7 +45,7 @@ public class Message {
                 }
                 chunkNo = fields[4];
                 replicationDeg = fields[5];
-                body = lines[1];
+                body = lines[1].getBytes();
                 break;
             case "STORED":
                 messageType = "STORED";
@@ -72,7 +74,7 @@ public class Message {
                     return;
                 }
                 chunkNo = fields[4];
-                body = lines[1];
+                body = lines[1].getBytes();
                 break;
             case "DELETE":
                 messageType = "DELETE";
@@ -140,11 +142,11 @@ public class Message {
         this.replicationDeg = String.valueOf(replicationDeg);
     }
 
-    public String getBody() {
+    public byte[] getBody() {
         return body;
     }
 
-    public void setBody(String body) {
+    public void setBody(byte[] body) {
         this.body = body;
     }
 

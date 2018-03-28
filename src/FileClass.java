@@ -1,8 +1,11 @@
+import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
+
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.concurrent.*;
 import java.net.*;
 
@@ -70,7 +73,7 @@ public class FileClass implements Runnable{
 
     }
 
-    public void putChunk() throws IOException, InterruptedException {
+    public void putChunk() throws IOException {
 
         int sizeOfFiles = 1024 * 60;// 64KB
         byte[] buffer = new byte[sizeOfFiles];
@@ -93,11 +96,10 @@ public class FileClass implements Runnable{
 
         //try-with-resources to ensure closing stream
         try (FileInputStream fis = new FileInputStream(file);
-             BufferedInputStream bis = new BufferedInputStream(fis)) {
-
+             ByteArrayOutputStream baoos = new ByteArrayOutputStream()) {
 
             int bytesAmount = 0;
-            while ((bytesAmount = bis.read(buffer)) > 0) {
+            while ((bytesAmount = fis.read(buffer)) > 0) {
                 numberChunks++;
                 int currentRepDegree = 0;
                 long timeToWait = 500;
@@ -119,12 +121,16 @@ public class FileClass implements Runnable{
                     message.setReplicationDeg(replicationDeg);
                     message.setChunkNo(String.valueOf(numberChunks));
 
-                    String v = new String( buffer, Charset.forName("UTF-8") );
-                    message.setBody(v);
+                    baoos.write(buffer, 0, bytesAmount);
 
-                    String msg = message.toString();
+                    message.setBody(baoos.toByteArray());
 
-                    DatagramPacket test = new DatagramPacket(msg.getBytes(), msg.length(),
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream(1024 * 60);
+                    ObjectOutputStream oos = new ObjectOutputStream(baos);
+                    oos.writeObject(message);
+                    byte[] data = baos.toByteArray();
+
+                    DatagramPacket test = new DatagramPacket(data, data.length,
                             Peer.mdb, 4447);
 
                     Peer.socket_mdb.send(test);//Sends data chunk
@@ -146,19 +152,25 @@ public class FileClass implements Runnable{
 
                       try {
                           Peer.socket_mc.receive(recv);//confirmation message from Peer
-                          String response = new String(recv.getData(), recv.getOffset(), recv.getLength());
 
-                          Message messageReceived = new Message(response);
+                          ByteArrayInputStream bais = new ByteArrayInputStream(buf);
+                          ObjectInputStream ois = new ObjectInputStream(bais);
+                          Message messageReceived = (Message) ois.readObject();
 
-                          if (messageReceived.getMessageType() == "STORED"){
+                          System.out.println("******************" + messageReceived.getMessageType());
+
+                          if (messageReceived.getMessageType().equals("STORED")){
                             out.print(messageReceived.getSenderId() + " ");
-                            System.out.println("Confirmation message: " + response);
+                            System.out.println("Confirmation message: " + messageReceived.getMessageType());
                             currentRepDegree++;
                           }
                       } catch (SocketTimeoutException e) {
+                          System.out.println("Timeout on listening to STORED");
+                      } catch (ClassNotFoundException e) {
+                          e.printStackTrace();
                       }
 
-                      long elapsedWhile = System.currentTimeMillis() - start;
+                        long elapsedWhile = System.currentTimeMillis() - start;
                       elapsedTime = elapsedTime + elapsedWhile;
                     }
                     out.println();
@@ -177,12 +189,10 @@ public class FileClass implements Runnable{
         int sizeOfFiles = 1024 * 60;// 64KB
         byte[] buffer = new byte[sizeOfFiles];
 
-        try (FileOutputStream fos = new FileOutputStream(file);
-             BufferedOutputStream bos = new BufferedOutputStream(fos)) {
+        try (FileOutputStream fos = new FileOutputStream(file, true);
+            ByteArrayOutputStream baios = new ByteArrayOutputStream()) {
 
-
-            int bytesAmount = 0;
-            while (readChunks < numberChunks) {
+            while (readChunks < numberChunks - 1) {
                 readChunks++;
 
                 Message message = new Message();
@@ -190,29 +200,38 @@ public class FileClass implements Runnable{
                 message.setFileId(id);
                 message.setChunkNo(String.valueOf(readChunks));
 
-                String msg = message.toString();
+                ByteArrayOutputStream baos = new ByteArrayOutputStream(1024 * 60);
+                ObjectOutputStream oos = new ObjectOutputStream(baos);
+                oos.writeObject(message);
+                byte[] data = baos.toByteArray();
 
-                DatagramPacket test = new DatagramPacket(msg.getBytes(), msg.length(),
+                DatagramPacket test = new DatagramPacket(data, data.length,
                         Peer.mc, 4446);
 
                 Peer.socket_mc.send(test);//Sends data chunk
 
                 System.out.println("Requesting chunk #" + readChunks);
 
-                while (true) {
+                boolean waitChunk = true;
+                while (waitChunk) {
                     DatagramPacket recv = new DatagramPacket(buffer, buffer.length);
 
                     try {
                         Peer.socket_mdr.receive(recv);//confirmation message from Peer
-                        String response = new String(recv.getData(), recv.getOffset(), recv.getLength());
 
-                        Message messageReceived = new Message(response);
+                        ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
+                        ObjectInputStream ois = new ObjectInputStream(bais);
+                        Message messageReceived = (Message) ois.readObject();
 
-                        if (messageReceived.getMessageType() == "CHUNK"){
-                            bos.write(messageReceived.getBody().getBytes(), 0, messageReceived.getBody().getBytes().length);
-                            continue;
+                        if (messageReceived.getMessageType().equals("CHUNK")){
+                            if (messageReceived.getFileId().equals(id) && Integer.parseInt(messageReceived.getChunkNo()) == readChunks) {
+                                fos.write(messageReceived.getBody(), 0, messageReceived.getBody().length);
+                                waitChunk = false;
+                            }
                         }
                     } catch (SocketTimeoutException e) {
+                    } catch (ClassNotFoundException e) {
+                        e.printStackTrace();
                     }
                 }
             }
@@ -229,10 +248,13 @@ public class FileClass implements Runnable{
 		Peer.mdb = InetAddress.getByName("224.0.0.2");//mcast_addr
 		Peer.socket_mdb.joinGroup(Peer.mdb);
 
-    	String msg = message.toString();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(1024 * 60);
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(message);
+        byte[] data = baos.toByteArray();
 
-		packet = new DatagramPacket(msg.getBytes(), msg.length(),
-					        Peer.mc, 4446);
+        packet = new DatagramPacket(data, data.length,
+                Peer.mc, 4446);
 
         currentProtocol = Protocol.BACKUP;
         scheduledThreadPoolExecutor.schedule(this::run, Utilities.randomMiliseconds(), TimeUnit.MILLISECONDS);
