@@ -8,6 +8,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.concurrent.*;
 import java.net.*;
+import java.nio.file.Path;
 
 public class FileClass implements Runnable{
 
@@ -243,6 +244,69 @@ public class FileClass implements Runnable{
             }
         }
     }
+
+    public void deleteChunk() throws IOException {
+
+        String fileName = file.getName();
+
+        Path storedPeerChunks  = Paths.get("../assets/Initiator/" + getId()+ ".txt");
+
+        Files.delete(file.toPath());//deletes file
+        Files.delete(storedPeerChunks);//deletes file with where the chunks were saved in peers
+
+        /*removes info about this file from backed up files*/
+        File backed_up_files = new File("../assets/Initiator/backed_up_files.txt");
+        File tempFile = new File("temp.txt");
+
+        BufferedReader reader = new BufferedReader(new FileReader(backed_up_files));
+        BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile));
+
+        String lineToRemove = file.getName() + " " + id;
+        String currentLine;
+
+        while((currentLine = reader.readLine()) != null) {
+            if(!currentLine.equals(lineToRemove))
+              writer.write(currentLine + System.getProperty("line.separator"));
+        }
+
+        writer.close();
+        reader.close();
+
+        tempFile.renameTo(backed_up_files);
+
+
+        //creates DELETE packet to be sent from the Initiator peer
+        int sizeOfFiles = 1024 * 60;// 64KB
+        byte[] buffer = new byte[sizeOfFiles];
+
+        ByteArrayOutputStream baoos = new ByteArrayOutputStream();
+
+        Message message = new Message();
+        message.setMessageType("DELETE");
+        message.setFileId(id);
+
+        baoos.write(buffer, 0, buffer.length);
+        baoos.close();
+
+        message.setBody(baoos.toByteArray());
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(1024 * 64);
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(message);
+        byte[] data = baos.toByteArray();
+
+        DatagramPacket test = new DatagramPacket(data, data.length,
+                Peer.mc, 4446);
+
+        int tries = 0;//sends delete request 3 times
+        while (tries != 3 ) {
+            tries++;
+            Peer.socket_mc.send(test);//Sends data chunk
+            System.out.println("Requesting deletion of chunks of file id " + id + ".");
+
+        }
+
+  }
 
     public boolean storeChunk(Message message) throws IOException {
 

@@ -11,14 +11,14 @@ public class Client {
             System.exit(1);
         }
 
-        Peer peer = new Peer(Integer.parseInt(args[0]), Boolean.valueOf(args[1]),1);
+        Peer peer = new Peer(Integer.parseInt(args[0]), Boolean.valueOf(args[1]),2);
 
 
 		if (Boolean.valueOf(args[1]))
        	  // peer.backupFile("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\TestFile.jpeg", 2);
         	// peer.backupFile("../assets/TestFile.pdf", 1);
-    	    peer.restoreFile("TestFile.pdf");
-
+    	    //peer.restoreFile("TestFile.pdf");
+          // peer.deleteFile("../assets/TestFile.pdf");
 
     }
 }

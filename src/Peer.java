@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 
+
 public class Peer {
 
     private static Boolean running = true;
@@ -207,6 +208,45 @@ public class Peer {
                 e.printStackTrace();
             }
         }
+
+        if (protocol == 2){
+          try{
+            byte[] buf = new byte[1024 * 64];
+            DatagramPacket recvMC = new DatagramPacket(buf, buf.length);
+            socket_mc.receive(recvMC);
+
+            ByteArrayInputStream bais = new ByteArrayInputStream(buf);
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            Message messageReceivedMC = (Message) ois.readObject();
+
+            boolean chunksDeleted = false;
+
+            System.out.println("Received: " + messageReceivedMC.getMessageType() + " from Peer " + messageReceivedMC.getSenderId() + " for file with id " + messageReceivedMC.getFileId() + ".");
+
+            File toDelete = new File("../assets/Peer_" + peer_id + "/" + messageReceivedMC.getFileId());
+            /*deletes chunks inside folder*/
+            if (toDelete.exists()){
+              File[] files = toDelete.listFiles();
+              if (files != null){
+                for(File f: files)
+                    f.delete();
+              }
+              chunksDeleted = toDelete.delete();/*deletes directory*/
+            }
+
+            if (chunksDeleted == true)
+              System.out.println("Chunks for this file id have been deleted.");
+            else
+              System.out.println("Peer does not contain chunks for this file id.");
+
+
+          } catch (ClassNotFoundException e) {
+
+          } catch (SocketTimeoutException e1) {
+
+          }
+
+        }
     }
 
     public void backupFile(String filePath, int replicationDeg) throws IOException, InterruptedException {
@@ -269,6 +309,16 @@ public class Peer {
             System.out.println("No backed up file found for " + fileName);
             System.exit(1);
         }
+    }
+
+    public void deleteFile(String filePath) throws IOException{
+
+      FileClass fileClass = new FileClass(filePath, false);
+
+      if (fileClass.isValid()) {
+        fileClass.deleteChunk();
+      }
+
     }
 
     public void changeFileLines(String[] lines) {
