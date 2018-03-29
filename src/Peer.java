@@ -56,7 +56,7 @@ public class Peer {
         //TODO
 
         if (protocol == 0) {
-            byte[] buf = new byte[1024 * 60];
+            byte[] buf = new byte[1024 * 64];
 
             try {
                 DatagramPacket recvMDB = new DatagramPacket(buf, buf.length);
@@ -72,7 +72,7 @@ public class Peer {
                     int storedCount = 0;
 
                     //String dir = "../assets/Peer_" + peer_id + "/" + messageReceivedMDB.getFileId() + "/";
-                    String dir = "C:\\Users\\up201505172\\IdeaProjects\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\" + messageReceivedMDB.getFileId() + "\\";
+                    String dir = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\" + messageReceivedMDB.getFileId() + "\\";
                     String path = messageReceivedMDB.getChunkNo();
                     File dirF = new File(dir);
                     File file = new File(dir + path);
@@ -104,12 +104,11 @@ public class Peer {
                             try {
                                 socket_mc.receive(recvMC);
                             } catch (SocketTimeoutException e) {
-
                             }
 
-                            baos = new ByteArrayInputStream(buf);
-                            oos = new ObjectInputStream(baos);
-                            Message messageReceivedMC = (Message) oos.readObject();
+                            ByteArrayInputStream baois = new ByteArrayInputStream(buf);
+                            ObjectInputStream oois = new ObjectInputStream(baois);
+                            Message messageReceivedMC = (Message) oois.readObject();
 
                             if (messageReceivedMC.getMessageType().equals("STORED")) {
                                 storedCount++;
@@ -136,16 +135,16 @@ public class Peer {
                 }
 
             } catch (SocketTimeoutException e) {
-
+                System.out.println("@@@@@@@@@@@@@@@@@@@@@@@@@ could not receive PUTCHUNK");
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             } catch (EOFException e) {
-
+                System.out.println("@@@@@@@@@@@@@ WAITING FOR NEXT");
             }
         }
         if (protocol == 1) {
             try {
-                byte[] buf = new byte[1024 * 60];
+                byte[] buf = new byte[1024 * 64];
                 DatagramPacket recvMC = new DatagramPacket(buf, buf.length);
                 socket_mc.receive(recvMC);
 
@@ -156,13 +155,13 @@ public class Peer {
                 System.out.println("/////////////// --" + messageReceivedMC.getMessageType() + "--");
 
                 if (messageReceivedMC.getMessageType().equals("GETCHUNK")) {
-                    File dir = new File("C:\\Users\\up201505172\\IdeaProjects\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\" + messageReceivedMC.getFileId());
+                    File dir = new File("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\" + messageReceivedMC.getFileId());
 
                     if (!dir.exists()) {
                         System.out.println("Did not store this file");
                     }
 
-                    File file = new File("C:\\Users\\up201505172\\IdeaProjects\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\" + messageReceivedMC.getFileId() + "\\" + messageReceivedMC.getChunkNo());
+                    File file = new File("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\" + messageReceivedMC.getFileId() + "\\" + messageReceivedMC.getChunkNo());
 
                     if (file.exists()) {
 
@@ -174,11 +173,13 @@ public class Peer {
                         message.setFileId(messageReceivedMC.getFileId());
                         message.setChunkNo(messageReceivedMC.getChunkNo());
 
-                        try (FileInputStream fis = new FileInputStream(file);
-                             ByteArrayOutputStream bioos = new ByteArrayOutputStream()) {
+                        try (FileInputStream fis = new FileInputStream(file)) {
+
+                            ByteArrayOutputStream bioos = new ByteArrayOutputStream();
                             int bytesRead = fis.read(buffer);
 
                             bioos.write(buffer, 0, bytesRead);
+                            bioos.close();
 
                             message.setBody(bioos.toByteArray());
 
@@ -186,10 +187,11 @@ public class Peer {
 
                         }
 
-                        ByteArrayOutputStream baos = new ByteArrayOutputStream(1024 * 60);
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream(1024 * 64);
                         ObjectOutputStream oos = new ObjectOutputStream(baos);
                         oos.writeObject(message);
                         byte[] data = baos.toByteArray();
+                        baos.close();
 
                         DatagramPacket send = new DatagramPacket(data, data.length, Peer.mdr, 4448);
 
@@ -218,7 +220,7 @@ public class Peer {
 
         String readId = "";
 
-        File backupUpFiles = new File("C:\\Users\\up201505172\\IdeaProjects\\sdis1718-t1g03\\assets\\Initiator\\backed_up_files.txt");
+        File backupUpFiles = new File("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Initiator\\backed_up_files.txt");
 
         if (!backupUpFiles.exists()) {
             System.out.println("No backed up file found for Initiator");
@@ -239,7 +241,7 @@ public class Peer {
         if (readId != "") {
 
             int countLines = 0;
-            String dir = "C:\\Users\\up201505172\\IdeaProjects\\sdis1718-t1g03\\assets\\Initiator\\";
+            String dir = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Initiator\\";
             File fileChunks = new File(dir + readId + ".txt");
 
             try (BufferedReader br = new BufferedReader(new FileReader(fileChunks))) {
