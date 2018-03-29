@@ -71,7 +71,7 @@ public class Peer {
                 if (messageReceivedMDB.getMessageType().equals("PUTCHUNK")) {
                     int storedCount = 0;
 
-                    //String dir = "../assets/Peer_" + peer_id + "/" + messageReceivedMDB.getFileId() + "/";
+                    // String dir = "../assets/Peer_" + peer_id + "/" + messageReceivedMDB.getFileId() + "/";
                     String dir = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\" + messageReceivedMDB.getFileId() + "\\";
                     String path = messageReceivedMDB.getChunkNo();
                     File dirF = new File(dir);
@@ -156,12 +156,13 @@ public class Peer {
 
                 if (messageReceivedMC.getMessageType().equals("GETCHUNK")) {
                     File dir = new File("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\" + messageReceivedMC.getFileId());
-
+                    // File dir =  new File("../assets/Peer_" + peer_id + "/" + messageReceivedMC.getFileId());
                     if (!dir.exists()) {
                         System.out.println("Did not store this file");
                     }
 
                     File file = new File("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\" + messageReceivedMC.getFileId() + "\\" + messageReceivedMC.getChunkNo());
+                    // File file = new File("../assets/Peer_" + peer_id + "/" + messageReceivedMC.getFileId() + "/" + messageReceivedMC.getChunkNo());
 
                     if (file.exists()) {
 
@@ -175,7 +176,8 @@ public class Peer {
 
                         try (FileInputStream fis = new FileInputStream(file)) {
 
-                            ByteArrayOutputStream bioos = new ByteArrayOutputStream();
+                            ByteArrayOutputStream bioos = new D:\\Data\\GitHub\\sdis1718-t1g03\\ByteArrayOutputStream();
+                            // ByteArrayOutputStream bioos = new ByteArrayOutputStream();
                             int bytesRead = fis.read(buffer);
 
                             bioos.write(buffer, 0, bytesRead);
@@ -221,6 +223,7 @@ public class Peer {
         String readId = "";
 
         File backupUpFiles = new File("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Initiator\\backed_up_files.txt");
+        // File backupUpFiles = new File("../assets/Initiator/backed_up_files.txt");
 
         if (!backupUpFiles.exists()) {
             System.out.println("No backed up file found for Initiator");
@@ -242,6 +245,7 @@ public class Peer {
 
             int countLines = 0;
             String dir = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Initiator\\";
+            // String dir = "../assets/Initiator/";
             File fileChunks = new File(dir + readId + ".txt");
 
             try (BufferedReader br = new BufferedReader(new FileReader(fileChunks))) {
@@ -252,10 +256,13 @@ public class Peer {
             }
 
             File dirF = new File(dir + "restoredFiles\\");
+            // File dirF = new File(dir + "restoredFiles/");
             dirF.mkdirs();
             FileWriter fileWriter = new FileWriter(dir + "restoredFiles\\" + fileName);
+            // FileWriter fileWriter = new FileWriter(dir + "restoredFiles/" + fileName);
 
             FileClass fileClass = new FileClass(dir + "restoredFiles\\" + fileName, true);
+            // FileClass fileClass = new FileClass(dir + "restoredFiles/" + fileName, true);
             fileClass.setId(readId);
             fileClass.getChunk(countLines);
         } else {

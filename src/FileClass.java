@@ -1,4 +1,4 @@
-import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
+//import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
 
 import java.io.*;
 import java.nio.charset.Charset;
@@ -81,7 +81,7 @@ public class FileClass implements Runnable{
         String fileName = file.getName();
 
         String dir = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Initiator\\";
-        //String dir = "../assets/Initiator/";
+        // String dir = "../assets/Initiator/";
         String pathFolder = id;
 
         File dirF = new File(dir);
