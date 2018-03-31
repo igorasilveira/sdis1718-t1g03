@@ -1,4 +1,5 @@
 import java.io.IOException;
+import java.util.concurrent.*;
 
 public class Client {
 
@@ -11,14 +12,18 @@ public class Client {
             System.exit(1);
         }
 
-        Peer peer = new Peer(Integer.parseInt(args[0]), Boolean.valueOf(args[1]),2);
+        BlockingQueue<Message> queue = new LinkedBlockingQueue<Message>();
+        Peer peer_mdb = new Peer(Integer.parseInt(args[0]), Boolean.valueOf(args[1]),1,queue);
+        Peer peer_mc = new Peer(Integer.parseInt(args[0]), Boolean.valueOf(args[1]),2,queue);
 
+        peer_mdb.start();
+        peer_mc.start();
 
 		if (Boolean.valueOf(args[1]))
        	  // peer.backupFile("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\TestFile.jpeg", 2);
-        	// peer.backupFile("../assets/TestFile.pdf", 1);
-    	    //peer.restoreFile("TestFile.pdf");
-          // peer.deleteFile("../assets/TestFile.pdf");
+        	// peer_mdb.backupFile("../assets/TestFile.pdf", 2);
+    	    // peer_mc.restoreFile("TestFile.pdf");
+          // peer_mc.deleteFile("../assets/TestFile.pdf");
 
     }
 }

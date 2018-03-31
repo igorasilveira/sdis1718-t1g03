@@ -1,5 +1,3 @@
-//import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
-
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
@@ -136,7 +134,7 @@ public class FileClass implements Runnable{
                         System.exit(1);
                     }
 
-                    System.out.println("@@@@@@@@@@@@  Byte Array length " + data.length);
+                    //System.out.println("@@@@@@@@@@@@  Byte Array length " + data.length);
 
                     Peer.socket_mdb.send(test);//Sends data chunk
 
@@ -162,15 +160,17 @@ public class FileClass implements Runnable{
                           ObjectInputStream ois = new ObjectInputStream(bais);
                           Message messageReceived = (Message) ois.readObject();
 
-                          System.out.println("******************" + messageReceived.getMessageType());
+                          //System.out.println("******************" + messageReceived.getMessageType());
 
                           if (messageReceived.getMessageType().equals("STORED")){
                             out.print(messageReceived.getSenderId() + " ");
-                            System.out.println("Confirmation message: " + messageReceived.getMessageType());
+                            //System.out.println("Confirmation message: " + messageReceived.getMessageType());
+                            System.out.println("Received: " + messageReceived.getMessageType() + " from Peer " + messageReceived.getSenderId() + " for file with id " + messageReceived.getFileId() + ".");
+
                             currentRepDegree++;
                           }
                       } catch (SocketTimeoutException e) {
-                          System.out.println("Timeout on listening to STORED");
+                          //System.out.println("Waiting for chunk storing confirmations.");
                       } catch (ClassNotFoundException e) {
                           e.printStackTrace();
                       }
@@ -231,7 +231,8 @@ public class FileClass implements Runnable{
 
                         if (messageReceived.getMessageType().equals("CHUNK")){
                             if (messageReceived.getFileId().equals(id) && Integer.parseInt(messageReceived.getChunkNo()) == readChunks) {
-                                System.out.println("Confirmation response: received CHUNK from " + messageReceived.getSenderId());
+                                //System.out.println("Confirmation response: received CHUNK from " + messageReceived.getSenderId());
+                                System.out.println("Received: " + messageReceived.getMessageType() + " from Peer " + messageReceived.getSenderId() + " for file with id " + messageReceived.getFileId() + ".");
                                 fos.write(messageReceived.getBody(), 0, messageReceived.getBody().length);
                                 waitChunk = false;
                             }
