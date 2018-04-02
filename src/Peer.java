@@ -1,9 +1,10 @@
+import com.sun.deploy.util.ArrayUtil;
+
 import java.io.*;
 import java.net.*;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
+import java.util.*;
 import java.util.concurrent.*;
 
 
@@ -75,12 +76,12 @@ public class Peer extends Thread{
 
                 //System.out.println("/////////////// --" + messageReceivedMDB.getMessageType() + "--");
 
-                if (messageReceivedMDB.getMessageType().equals("PUTCHUNK")) {
+                if (messageReceivedMDB.getMessageType().equals("PUTCHUNK") && !messageReceivedMDB.getSenderId().equals(peer_id)) {
                     int storedCount = 0;
                     System.out.println("Received: " + messageReceivedMDB.getMessageType() + " from Peer " + messageReceivedMDB.getSenderId() + " for file with id " + messageReceivedMDB.getFileId() + " for chunk nr" + messageReceivedMDB.getChunkNo() + ".");
 
                     // String dir = "../assets/Peer_" + peer_id + "/" + messageReceivedMDB.getFileId() + "/";
-                    String dir = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\" + messageReceivedMDB.getFileId() + "\\";
+                    String dir = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\back_ups\\" + messageReceivedMDB.getFileId() + "\\";
                     String path = messageReceivedMDB.getChunkNo();
                     File dirF = new File(dir);
                     File file = new File(dir + path);
@@ -173,8 +174,8 @@ public class Peer extends Thread{
 
                 //System.out.println("/////////////// --" + messageReceivedMC.getMessageType() + "--");
 
-                if (messageReceivedMC.getMessageType().equals("GETCHUNK")) {
-                    File dir = new File("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\" + messageReceivedMC.getFileId());
+                if (messageReceivedMC.getMessageType().equals("GETCHUNK") && !messageReceivedMC.getSenderId().equals(String.valueOf(peer_id))) {
+                    File dir = new File("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\back_ups\\" + messageReceivedMC.getFileId());
                     // System.out.println("Received: " + messageReceivedMC.getMessageType() + " from Peer " + messageReceivedMC.getSenderId() + " for file with id " + messageReceivedMC.getFileId() + ".");
 
                     // File dir =  new File("../assets/Peer_" + peer_id + "/" + messageReceivedMC.getFileId());
@@ -182,7 +183,7 @@ public class Peer extends Thread{
                         System.out.println("Did not store this file");
                     }
 
-                    File file = new File("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\" + messageReceivedMC.getFileId() + "\\" + messageReceivedMC.getChunkNo());
+                    File file = new File("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\back_ups\\" + messageReceivedMC.getFileId() + "\\" + messageReceivedMC.getChunkNo());
                     // File file = new File("../assets/Peer_" + peer_id + "/" + messageReceivedMC.getFileId() + "/" + messageReceivedMC.getChunkNo());
 
                     if (file.exists()) {
@@ -227,7 +228,7 @@ public class Peer extends Thread{
 
                   System.out.println("Received: " + messageReceivedMC.getMessageType() + " from Peer " + messageReceivedMC.getSenderId() + " for file with id " + messageReceivedMC.getFileId() + ".");
 
-                  File toDelete = new File("../assets/Peer_" + peer_id + "/" + messageReceivedMC.getFileId());
+                  File toDelete = new File("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\back_ups\\" + messageReceivedMC.getFileId());
                   /*deletes chunks inside folder*/
                   if (toDelete.exists()){
                     File[] files = toDelete.listFiles();
@@ -243,6 +244,146 @@ public class Peer extends Thread{
                   else
                     System.out.println("Peer does not contain chunks for this file id.");
 
+
+                } else if (messageReceivedMC.getMessageType().equals("REMOVED")){
+
+                    int repDegree = 0;
+                    File backupUpFiles = new File("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\backed_up_files.txt");
+                    // File backupUpFiles = new File("../assets/Initiator/backed_up_files.txt");
+                    System.out.println("Received: " + messageReceivedMC.getMessageType() + " from Peer " + messageReceivedMC.getSenderId() + " for file with id " + messageReceivedMC.getFileId() + ".");
+
+                    if (backupUpFiles.exists()) {
+
+                        try (BufferedReader br = new BufferedReader(new FileReader(backupUpFiles))) {
+                            String line;
+                            while ((line = br.readLine()) != null) {
+                                String[] fields = line.split(" ");
+                                if (fields[1].equals(messageReceivedMC.getFileId())){
+                                    repDegree = Integer.parseInt(fields[2]);
+                                    break;
+                                }
+                            }
+                        }
+
+                        File backupList = new File("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\" + messageReceivedMC.getFileId() + ".txt");
+
+                        if (backupList.isFile()) {                  // is the original initiator peer
+                            //linhas do ficheiro
+                            String[] lines = getFileLines(backupList.getPath());
+
+                            //peers que guardaram o chunk de numero recebido
+                            String[] peers = lines[Integer.parseInt(messageReceivedMC.getChunkNo())].split(" ");
+
+                            ArrayList arrayList = new ArrayList();
+                            Collections.addAll(arrayList, peers);
+
+                            arrayList.remove(messageReceivedMC.getSenderId());
+
+                            //se apos remocao de quem enviou REMOVED o rep degree for menor é preciso backup
+                            while (arrayList.size() < repDegree) {
+                                //TODO pedir o body a alguem com o getchunk
+                                Message message = new Message();
+                                message.setMessageType("GETCHUNK");
+                                message.setFileId(messageReceivedMC.getFileId());
+                                message.setChunkNo(messageReceivedMC.getChunkNo());
+
+                                ByteArrayOutputStream baos = new ByteArrayOutputStream(1024 * 64);
+                                ObjectOutputStream oos = new ObjectOutputStream(baos);
+                                oos.writeObject(message);
+                                byte[] data = baos.toByteArray();
+
+                                DatagramPacket test = new DatagramPacket(data, data.length,
+                                        Peer.mc, 4446);
+
+                                Peer.socket_mc.send(test);//Sends data chunk
+
+                                oos.reset();
+
+                                System.out.println("Requesting chunk #" + messageReceivedMC.getChunkNo());
+
+                                int sizeOfFiles = 1024 * 64;// 64KB
+                                byte[] buffer = new byte[sizeOfFiles];
+
+                                Message messageToSend = new Message();
+
+                                boolean waitChunk = true;
+                                while (waitChunk) {
+                                    DatagramPacket recv = new DatagramPacket(buffer, buffer.length);
+
+                                    try {
+                                        Peer.socket_mdr.receive(recv);//confirmation message from Peer
+
+                                        ByteArrayInputStream baiis = new ByteArrayInputStream(buffer);
+                                        ObjectInputStream oiis = new ObjectInputStream(baiis);
+                                        Message messageReceived = (Message) oiis.readObject();
+                                        oiis.reset();
+
+                                        if (messageReceived.getMessageType().equals("CHUNK")){
+                                            if (messageReceived.getFileId().equals(messageReceivedMC.getFileId()) && Integer.parseInt(messageReceived.getChunkNo()) == Integer.parseInt(messageReceivedMC.getChunkNo())) {
+                                                //System.out.println("Confirmation response: received CHUNK from " + messageReceived.getSenderId());
+                                                System.out.println("Received: " + messageReceived.getMessageType() + " from Peer " + messageReceived.getSenderId() + " for file with id " + messageReceived.getFileId() + ".");
+                                                messageToSend.setBody(messageReceived.getBody());
+                                                waitChunk = false;
+                                            }
+                                        }
+                                    } catch (SocketTimeoutException e) {
+                                    } catch (ClassNotFoundException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+
+                                //TODO enviar putchunk com o body recebido
+
+                                messageToSend.setMessageType("PUTCHUNK");
+                                messageToSend.setFileId(messageReceivedMC.getFileId());
+                                messageToSend.setReplicationDeg(repDegree);
+                                messageToSend.setChunkNo(messageReceivedMC.getChunkNo());
+
+                                ByteArrayOutputStream baoos = new ByteArrayOutputStream(1024 * 64);
+                                ObjectOutputStream ooos = new ObjectOutputStream(baoos);
+                                ooos.writeObject(messageToSend);
+                                byte[] dataa = baoos.toByteArray();
+                                ooos.reset();
+
+                                DatagramPacket teste = new DatagramPacket(dataa, dataa.length,
+                                        Peer.mdb, 4447);
+
+                                Peer.socket_mdb.send(teste);
+
+                                waitChunk = true;
+                                while (waitChunk) {
+                                    DatagramPacket recv = new DatagramPacket(buffer, buffer.length);
+
+                                    try {
+                                        Peer.socket_mc.receive(recv);//confirmation message from Peer
+
+                                        ByteArrayInputStream baiis = new ByteArrayInputStream(buffer);
+                                        ObjectInputStream oiis = new ObjectInputStream(baiis);
+                                        Message messageReceived = (Message) oiis.readObject();
+                                        oiis.reset();
+
+                                        if (messageReceived.getMessageType().equals("STORED")){
+                                            if (messageReceived.getFileId().equals(messageReceivedMC.getFileId()) && Integer.parseInt(messageReceived.getChunkNo()) == Integer.parseInt(messageReceivedMC.getChunkNo())) {
+                                                //System.out.println("Confirmation response: received CHUNK from " + messageReceived.getSenderId());
+                                                System.out.println("Received: " + messageReceived.getMessageType() + " from Peer " + messageReceived.getSenderId() + " for file with id " + messageReceived.getFileId() + ".");
+                                                arrayList.add(messageReceived.getSenderId());
+                                                waitChunk = false;
+                                            }
+                                        }
+                                    } catch (SocketTimeoutException e) {
+                                    } catch (ClassNotFoundException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }
+
+                            peers = (String[]) arrayList.toArray(new String[arrayList.size()]);
+                            String finalLine = String.join(" ", peers);
+                            lines[Integer.parseInt(messageReceivedMC.getChunkNo())] = finalLine;
+
+                            changeFileLines(lines, backupList.getPath());
+                        }
+                    }
 
                 }
               }
@@ -285,7 +426,7 @@ public class Peer extends Thread{
         fileClass.setReplicationDeg(replicationDeg);
 
         if (fileClass.isValid()) {
-            fileClass.putChunk();
+            fileClass.putChunk(peer_id);
         }
     }
 
@@ -293,7 +434,7 @@ public class Peer extends Thread{
 
         String readId = "";
 
-        File backupUpFiles = new File("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Initiator\\backed_up_files.txt");
+        File backupUpFiles = new File("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\backed_up_files.txt");
         // File backupUpFiles = new File("../assets/Initiator/backed_up_files.txt");
 
         if (!backupUpFiles.exists()) {
@@ -315,7 +456,7 @@ public class Peer extends Thread{
         if (readId != "") {
 
             int countLines = 0;
-            String dir = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Initiator\\";
+            String dir = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\";
             // String dir = "../assets/Initiator/";
             File fileChunks = new File(dir + readId + ".txt");
 
@@ -326,14 +467,14 @@ public class Peer extends Thread{
                 }
             }
 
-            // File dirF = new File(dir + "restoredFiles\\");
-            File dirF = new File(dir + "restoredFiles/");
+             File dirF = new File(dir + "restoredFiles\\");
+//            File dirF = new File(dir + "restoredFiles/");
             dirF.mkdirs();
-            // FileWriter fileWriter = new FileWriter(dir + "restoredFiles\\" + fileName);
-            FileWriter fileWriter = new FileWriter(dir + "restoredFiles/" + fileName);
+             FileWriter fileWriter = new FileWriter(dir + "restoredFiles\\" + fileName);
+//            FileWriter fileWriter = new FileWriter(dir + "restoredFiles/" + fileName);
 
-            // FileClass fileClass = new FileClass(dir + "restoredFiles\\" + fileName, true);
-            FileClass fileClass = new FileClass(dir + "restoredFiles/" + fileName, true);
+             FileClass fileClass = new FileClass(dir + "restoredFiles\\" + fileName, true);
+//            FileClass fileClass = new FileClass(dir + "restoredFiles/" + fileName, true);
             fileClass.setId(readId);
             fileClass.getChunk(countLines);
         } else {
@@ -342,12 +483,73 @@ public class Peer extends Thread{
         }
     }
 
+    public void reclaimSpace(int maxSize) throws IOException {
+        Random random = new Random(System.currentTimeMillis());
+        File directory = new File("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\back_ups\\");
+
+        long currentSize = Utilities.findSize(directory.getPath()) / 1024;
+
+        System.out.println("Current: " + currentSize + " KBytes");
+        System.out.println("Desired: " + maxSize + " KBytes");
+
+        if (currentSize > maxSize) {
+            System.out.println("Deletion process initiated");
+        }
+
+        //pastas de backup de ficheiros
+        File[] backupFolder = directory.listFiles();
+
+        while (currentSize > maxSize) {
+            File chosenFolder = backupFolder[random.nextInt(backupFolder.length)];
+
+            if (chosenFolder.listFiles().length > 0) {
+
+                String chosenFileId =  chosenFolder.getName();
+                System.out.println("Chosen : " + chosenFileId);
+
+                File[] chunks = chosenFolder.listFiles();
+
+                File chosenChunk = chunks[random.nextInt(chunks.length)];
+                String chunkID = chosenChunk.getName();
+                System.out.println("Chosen chunk :" + chunkID);
+
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                chosenChunk.delete();
+
+                Message message = new Message();
+                message.setMessageType("REMOVED");
+                message.setFileId(chosenFileId);
+                message.setChunkNo(chunkID);
+
+                ByteArrayOutputStream baos = new ByteArrayOutputStream(1024 * 64);
+                ObjectOutputStream oos = new ObjectOutputStream(baos);
+                oos.writeObject(message);
+                byte[] data = baos.toByteArray();
+
+                DatagramPacket test = new DatagramPacket(data, data.length,
+                        Peer.mc, 4446);
+
+                Peer.socket_mc.send(test);//Sends data chunk
+
+                System.out.println("Removed chunk #" + chunkID + " of file " + chosenFileId);
+
+                currentSize = Utilities.findSize(directory.getPath()) / 1024;
+            }
+
+        }
+    }
+
     public void deleteFile(String filePath) throws IOException{
       try{
       FileClass fileClass = new FileClass(filePath, false);
 
       if (fileClass.isValid()) {
-        fileClass.deleteChunk();
+        fileClass.deleteChunk(peer_id);
         }
 
       }catch (FileNotFoundException e) {
@@ -356,10 +558,9 @@ public class Peer extends Thread{
 
     }
 
-    public void changeFileLines(String[] lines) {
+    public void changeFileLines(String[] lines, String path) {
         try {
-            //TODO change
-            PrintWriter printWriter = new PrintWriter("TODO", "UTF-8");
+            PrintWriter printWriter = new PrintWriter(path, "UTF-8");
 
             for (String line : lines) {
                 printWriter.println(line);
@@ -371,7 +572,7 @@ public class Peer extends Thread{
         }
     }
 
-    public String getFileLines(String path) {
+    public String[] getFileLines(String path) {
 
         String line = "", oldtext = "";
         int count = 0;
@@ -387,7 +588,7 @@ public class Peer extends Thread{
                 }
                 reader.close();
 
-                return oldtext;
+                return oldtext.split(System.lineSeparator());
             }
             catch (IOException ioe)
             {
@@ -397,7 +598,7 @@ public class Peer extends Thread{
             e.printStackTrace();
         }
 
-        return "";
+        return null;
     }
 
     public void setProtocol(int socket) {

@@ -20,10 +20,11 @@ public class Client {
         peer_mc.start();
 
 		if (Boolean.valueOf(args[1]))
-       	  // peer.backupFile("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\TestFile.jpeg", 2);
+//       	   peer_mdb.backupFile("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\TestFile.jpeg", 2);
         	// peer_mdb.backupFile("../assets/TestFile.pdf", 2);
-    	    // peer_mc.restoreFile("TestFile.pdf");
-          // peer_mc.deleteFile("../assets/TestFile.pdf");
+//    	     peer_mc.restoreFile("TestFile.pdf");
+//           peer_mc.deleteFile("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\TestFile.jpg");
+		    peer_mc.reclaimSpace(700);
 
     }
 }

@@ -72,14 +72,14 @@ public class FileClass implements Runnable{
 
     }
 
-    public void putChunk() throws IOException {
+    public void putChunk(int peer_id) throws IOException {
 
         int sizeOfFiles = 1024 * 60;// 64KB
         byte[] buffer = new byte[sizeOfFiles];
 
         String fileName = file.getName();
 
-        String dir = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Initiator\\";
+        String dir = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\";
         // String dir = "../assets/Initiator/";
         String pathFolder = id;
 
@@ -182,7 +182,7 @@ public class FileClass implements Runnable{
                     oos.close();
                 }
             }
-            fileWriter.write(fileName + " " + id + System.lineSeparator());
+            fileWriter.write(fileName + " " + id + " " + replicationDeg + System.lineSeparator());
             fileWriter.close();
         }
         out.close();
@@ -246,17 +246,19 @@ public class FileClass implements Runnable{
         }
     }
 
-    public void deleteChunk() throws IOException {
+    public void deleteChunk(int peer_id) throws IOException {
 
         String fileName = file.getName();
 
-        Path storedPeerChunks  = Paths.get("../assets/Initiator/" + getId()+ ".txt");
+        Path storedPeerChunks  = Paths.get("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\" + getId()+ ".txt");
+
+        if (storedPeerChunks == null) return;
 
         Files.delete(file.toPath());//deletes file
         Files.delete(storedPeerChunks);//deletes file with where the chunks were saved in peers
 
         /*removes info about this file from backed up files*/
-        File backed_up_files = new File("../assets/Initiator/backed_up_files.txt");
+        File backed_up_files = new File("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\backed_up_files.txt");
         File tempFile = new File("temp.txt");
 
         BufferedReader reader = new BufferedReader(new FileReader(backed_up_files));
