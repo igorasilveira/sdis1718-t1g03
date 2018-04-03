@@ -10,7 +10,7 @@ import java.nio.file.Path;
 
 public class FileClass implements Runnable{
 
-    public enum Protocol {NONE, BACKUP, RESTORE}
+    public enum Protocol {NONE, BACKUP, RESTORE, RECLAIM}
 
     File file;
     private String id;
@@ -25,8 +25,8 @@ public class FileClass implements Runnable{
     private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
 
     public FileClass(String path, boolean restore) {
-
-        file = new File(path);
+        if(!path.equals("reclaim"))
+            file = new File(path);
 
         scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
 
@@ -79,8 +79,8 @@ public class FileClass implements Runnable{
 
         String fileName = file.getName();
 
-        String dir = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\";
-        // String dir = "../assets/Initiator/";
+        // String dir = "D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\";
+        String dir = "../assets/Peer_" + peer_id + "/";
         String pathFolder = id;
 
         File dirF = new File(dir);
@@ -131,9 +131,7 @@ public class FileClass implements Runnable{
 
                     if (tries == 6) {
                         System.out.println("Exceed maximum PUTCHUNK tries for chunk #" + numberChunks);
-                        out.close();
-                        fileWriter.close();
-                        return;
+                        System.exit(1);
                     }
 
                     //System.out.println("@@@@@@@@@@@@  Byte Array length " + data.length);
@@ -145,40 +143,40 @@ public class FileClass implements Runnable{
                     long elapsedTime = 0;
                     boolean print = true;
                     while (elapsedTime < timeToWait) {
-                      if (print) {
-                        System.out.println("Listening for: " + (timeToWait/1000.0) + " seconds");
-                        print = false;
-                      }
-                      long start = System.currentTimeMillis();
+                        if (print) {
+                            System.out.println("Listening for: " + (timeToWait/1000.0) + " seconds");
+                            print = false;
+                        }
+                        long start = System.currentTimeMillis();
 
-                      byte[] buf = new byte[sizeOfFiles];
+                        byte[] buf = new byte[sizeOfFiles];
 
-                      DatagramPacket recv = new DatagramPacket(buf, buf.length);
+                        DatagramPacket recv = new DatagramPacket(buf, buf.length);
 
-                      try {
-                          Peer.socket_mc.receive(recv);//confirmation message from Peer
+                        try {
+                            Peer.socket_mc.receive(recv);//confirmation message from Peer
 
-                          ByteArrayInputStream bais = new ByteArrayInputStream(buf);
-                          ObjectInputStream ois = new ObjectInputStream(bais);
-                          Message messageReceived = (Message) ois.readObject();
+                            ByteArrayInputStream bais = new ByteArrayInputStream(buf);
+                            ObjectInputStream ois = new ObjectInputStream(bais);
+                            Message messageReceived = (Message) ois.readObject();
 
-                          System.out.println("******************" + messageReceived.getMessageType());
+                            //System.out.println("******************" + messageReceived.getMessageType());
 
-                          if (messageReceived.getMessageType().equals("STORED")){
-                            out.print(messageReceived.getSenderId() + " ");
-                            //System.out.println("Confirmation message: " + messageReceived.getMessageType());
-                            System.out.println("Received: " + messageReceived.getMessageType() + " from Peer " + messageReceived.getSenderId() + " for file with id " + messageReceived.getFileId() + ".");
+                            if (messageReceived.getMessageType().equals("STORED")){
+                                out.print(messageReceived.getSenderId() + " ");
+                                //System.out.println("Confirmation message: " + messageReceived.getMessageType());
+                                System.out.println("Received: " + messageReceived.getMessageType() + " from Peer " + messageReceived.getSenderId() + " for file with id " + messageReceived.getFileId() + ".");
 
-                            currentRepDegree++;
-                          }
-                      } catch (SocketTimeoutException e) {
-                          System.out.println("Waiting for chunk storing confirmations.");
-                      } catch (ClassNotFoundException e) {
-                          e.printStackTrace();
-                      }
+                                currentRepDegree++;
+                            }
+                        } catch (SocketTimeoutException e) {
+                            //System.out.println("Waiting for chunk storing confirmations.");
+                        } catch (ClassNotFoundException e) {
+                            e.printStackTrace();
+                        }
 
                         long elapsedWhile = System.currentTimeMillis() - start;
-                      elapsedTime = elapsedTime + elapsedWhile;
+                        elapsedTime = elapsedTime + elapsedWhile;
                     }
                     out.println();
                     oos.close();
@@ -196,10 +194,9 @@ public class FileClass implements Runnable{
 
         int sizeOfFiles = 1024 * 64;// 64KB
         byte[] buffer = new byte[sizeOfFiles];
-        System.out.println("CHUNKS " + numberChunks);
 
-        try (
-            ByteArrayOutputStream baios = new ByteArrayOutputStream()) {
+        try (FileOutputStream fos = new FileOutputStream(file, true);
+             ByteArrayOutputStream baios = new ByteArrayOutputStream()) {
 
             while (readChunks < numberChunks - 1) {
                 readChunks++;
@@ -223,7 +220,6 @@ public class FileClass implements Runnable{
 
                 boolean waitChunk = true;
                 while (waitChunk) {
-            FileOutputStream fos = new FileOutputStream(file, true);
                     DatagramPacket recv = new DatagramPacket(buffer, buffer.length);
 
                     try {
@@ -238,7 +234,6 @@ public class FileClass implements Runnable{
                                 //System.out.println("Confirmation response: received CHUNK from " + messageReceived.getSenderId());
                                 System.out.println("Received: " + messageReceived.getMessageType() + " from Peer " + messageReceived.getSenderId() + " for file with id " + messageReceived.getFileId() + ".");
                                 fos.write(messageReceived.getBody(), 0, messageReceived.getBody().length);
-                                fos.close();
                                 waitChunk = false;
                             }
                         }
@@ -255,7 +250,8 @@ public class FileClass implements Runnable{
 
         String fileName = file.getName();
 
-        Path storedPeerChunks  = Paths.get("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\" + getId()+ ".txt");
+        // Path storedPeerChunks  = Paths.get("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\" + getId()+ ".txt");
+        Path storedPeerChunks  = Paths.get("../assets/Peer_" + peer_id + "/" + getId()+ ".txt");
 
         if (storedPeerChunks == null) return;
 
@@ -263,7 +259,8 @@ public class FileClass implements Runnable{
         Files.delete(storedPeerChunks);//deletes file with where the chunks were saved in peers
 
         /*removes info about this file from backed up files*/
-        File backed_up_files = new File("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\backed_up_files.txt");
+        // File backed_up_files = new File("D:\\Data\\GitHub\\sdis1718-t1g03\\assets\\Peer_" + peer_id + "\\backed_up_files.txt");
+        File backed_up_files = new File("../assets/Peer_" + peer_id + "/backed_up_files.txt");
         File tempFile = new File("temp.txt");
 
         BufferedReader reader = new BufferedReader(new FileReader(backed_up_files));
@@ -274,7 +271,7 @@ public class FileClass implements Runnable{
 
         while((currentLine = reader.readLine()) != null) {
             if(!currentLine.equals(lineToRemove))
-              writer.write(currentLine + System.getProperty("line.separator"));
+                writer.write(currentLine + System.getProperty("line.separator"));
         }
 
         writer.close();
@@ -314,17 +311,17 @@ public class FileClass implements Runnable{
 
         }
 
-  }
+    }
 
     public boolean storeChunk(Message message) throws IOException {
 
         Peer.socket_mc = new MulticastSocket(4446);//mcast_port
-		Peer.mc = InetAddress.getByName("224.0.0.1");//mcast_addr
-		Peer.socket_mc.joinGroup(Peer.mc);
+        Peer.mc = InetAddress.getByName("224.0.0.1");//mcast_addr
+        Peer.socket_mc.joinGroup(Peer.mc);
 
-		Peer.socket_mdb = new MulticastSocket(4447);
-		Peer.mdb = InetAddress.getByName("224.0.0.2");//mcast_addr
-		Peer.socket_mdb.joinGroup(Peer.mdb);
+        Peer.socket_mdb = new MulticastSocket(4447);
+        Peer.mdb = InetAddress.getByName("224.0.0.2");//mcast_addr
+        Peer.socket_mdb.joinGroup(Peer.mdb);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream(1024 * 64);
         ObjectOutputStream oos = new ObjectOutputStream(baos);
@@ -337,7 +334,7 @@ public class FileClass implements Runnable{
         currentProtocol = Protocol.BACKUP;
         scheduledThreadPoolExecutor.schedule(this::run, Utilities.randomMiliseconds(), TimeUnit.MILLISECONDS);
 
-	    return true;
+        return true;
     }
 
     public boolean sendChunk(Message message) throws IOException {
@@ -345,6 +342,11 @@ public class FileClass implements Runnable{
         Peer.socket_mc = new MulticastSocket(4446);//mcast_port
         Peer.mc = InetAddress.getByName("224.0.0.1");//mcast_addr
         Peer.socket_mc.joinGroup(Peer.mc);
+
+        Peer.socket_mdb = new MulticastSocket(4447);
+        Peer.socket_mdb.setSoTimeout(100);
+        Peer.mdb = InetAddress.getByName("224.0.0.2");//mcast_addr
+        Peer.socket_mdb.joinGroup(Peer.mdb);
 
         Peer.socket_mdr = new MulticastSocket(4448);
         Peer.mdr = InetAddress.getByName("224.0.0.3");//mcast_addr
@@ -356,6 +358,30 @@ public class FileClass implements Runnable{
                 Peer.mdr, 4448);
 
         currentProtocol = Protocol.RESTORE;
+        scheduledThreadPoolExecutor.schedule(this::run, Utilities.randomMiliseconds(), TimeUnit.MILLISECONDS);
+
+        return true;
+    }
+
+    public boolean sendPutChunk(Message message) throws IOException {
+
+        Peer.socket_mc = new MulticastSocket(4446);//mcast_port
+        Peer.mc = InetAddress.getByName("224.0.0.1");//mcast_addr
+        Peer.socket_mc.joinGroup(Peer.mc);
+
+        Peer.socket_mdb = new MulticastSocket(4447);
+        Peer.mdb = InetAddress.getByName("224.0.0.2");//mcast_addr
+        Peer.socket_mdb.joinGroup(Peer.mdb);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(1024 * 64);
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(message);
+        byte[] data = baos.toByteArray();
+
+        packet = new DatagramPacket(data, data.length,
+                Peer.mdb, 4447);
+
+        currentProtocol = Protocol.RECLAIM;
         scheduledThreadPoolExecutor.schedule(this::run, Utilities.randomMiliseconds(), TimeUnit.MILLISECONDS);
 
         return true;
@@ -382,26 +408,28 @@ public class FileClass implements Runnable{
     }
 
     public ScheduledThreadPoolExecutor getScheduledThreadPoolExecutor() {
-      return scheduledThreadPoolExecutor;
+        return scheduledThreadPoolExecutor;
     }
 
     @Override
     public void run() {
-      try {
-          switch (currentProtocol) {
-              case BACKUP:
-                Peer.socket_mc.send(packet);
-                System.out.println("@@@@@ SENT STORED");
-                break;
-              case RESTORE:
-                Peer.socket_mdr.send(packet);
-                  break;
-              default:
-                  break;
-          }
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
+        try {
+            switch (currentProtocol) {
+                case BACKUP:
+                    Peer.socket_mc.send(packet);
+                    break;
+                case RESTORE:
+                    Peer.socket_mdr.send(packet);
+                    break;
+                case RECLAIM:
+                    Peer.socket_mdb.send(packet);
+                    break;
+                default:
+                    break;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void setId(String id) {
