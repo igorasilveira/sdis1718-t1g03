@@ -70,8 +70,8 @@ public class Peer extends Thread implements Interface {
                 DatagramPacket test = new DatagramPacket(msg.getBytes(), msg.length(),
                         group, 4446);
                 socket.send(test);*/
-        if (!isInitiatior){
-            while (running){
+        while (!isInitiatior){
+//            while (running){
                 if (socket == 1){
                     try {
                         byte[] buf = new byte[1024 * 64];
@@ -385,7 +385,7 @@ public class Peer extends Thread implements Interface {
                     }
                 }
             }
-        }
+        //}
     }
 
 
@@ -466,7 +466,6 @@ public class Peer extends Thread implements Interface {
             fileClass.getChunk(countLines);
         } else {
             System.out.println("No backed up file found for " + fileName);
-            System.exit(1);
         }
     }
 

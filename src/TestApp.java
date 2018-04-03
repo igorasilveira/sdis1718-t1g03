@@ -1,3 +1,5 @@
+import java.rmi.ConnectException;
+import java.rmi.UnmarshalException;
 import java.rmi.registry.Registry;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.RemoteException;
@@ -10,7 +12,6 @@ public class TestApp{
     public static void main(String args[]) {
         try{
             Registry registry = LocateRegistry.getRegistry(null);
-
             Interface remote_object_mdb = (Interface) registry.lookup(args[0] + 100);
             Interface remote_object_mc = (Interface) registry.lookup(args[0] + 1100);
             remote_object_mdb.setIsInitiator(true);
@@ -21,7 +22,11 @@ public class TestApp{
                     remote_object_mdb.backupFile(args[2], Integer.parseInt(args[3]));
                     break;
                 case "RESTORE":
-                    remote_object_mc.restoreFile(args[2]);
+                    try {
+                        remote_object_mc.restoreFile(args[2]);
+                    } catch (UnmarshalException e) {
+                        System.out.println("Continuing...");
+                    }
                     break;
                 case "DELETE":
                     remote_object_mc.deleteFile(args[2]);
