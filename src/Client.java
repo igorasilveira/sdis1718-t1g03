@@ -14,50 +14,56 @@ public class Client {
     public static void main(String args[]) throws IOException, InterruptedException {
 
         BlockingQueue<Message> queue = new LinkedBlockingQueue<Message>();
-      try{
+        try{
+            peer_mdb = new Peer(Integer.parseInt(args[0]), 1, queue);
+            peer_mc = new Peer(Integer.parseInt(args[0]), 2, queue);
 
-//        peer_mdb = new Peer(Integer.parseInt(args[0]), 1, queue);
-//        peer_mc = new Peer(Integer.parseInt(args[0]), 2, queue);
-//
-//        peer_mdb.start();
-//        peer_mc.start();
-//
-//        Interface exported_mdb = (Interface) UnicastRemoteObject.exportObject(peer_mdb, Integer.parseInt(args[0]) + 100);
-//        Interface exported_mc = (Interface) UnicastRemoteObject.exportObject(peer_mc, Integer.parseInt(args[0]) + 1100);
-//
-//        Registry registry = LocateRegistry.getRegistry();
-//
-//        registry.bind(args[0] + 100, exported_mdb);
-//        registry.bind(args[0] + 1100, exported_mc);
-//        System.err.println("Client ready");
-
-
-        if (args.length != 2) {
-            System.out.println("usage <peer_id> <is_initiator>");
-            System.exit(1);
-        }
-        peer_mdb = new Peer(Integer.parseInt(args[0]),1,queue);
-        peer_mc = new Peer(Integer.parseInt(args[0]),2,queue);
-
-        peer_mdb.start();
-        peer_mc.start();
-
-        if (Boolean.valueOf(args[1])) {
             peer_mdb.setIsInitiator(true);
             peer_mc.setIsInitiator(true);
-        }
 
-    		if (Boolean.valueOf(args[1]))
-            	peer_mdb.backupFile("TestFile.jpeg", 2);
-//        	     peer_mc.restoreFile("TestFile.txt");
-              // peer_mc.deleteFile("TestFile.pdf");
+            peer_mdb.start();
+            peer_mc.start();
+
+            if (args.length > 1) {
+                switch (args[1]) {
+                    case "BACKUP":
+                        peer_mdb.backupFile(args[2],Integer.parseInt(args[3]));
+                        break;
+                    case "RESTORE":
+                        peer_mc.restoreFile(args[2]);
+                        break;
+                    case "DELETE":
+                        peer_mc.deleteFile(args[2]);
+                        break;
+                    case "RECLAIM":
+                        peer_mc.reclaimSpace(Integer.parseInt(args[2]));
+                        break;
+                    case "RMI":
+
+                        peer_mdb.setIsInitiator(false);
+                        peer_mc.setIsInitiator(false);
+
+                        Interface exported_mdb = (Interface) UnicastRemoteObject.exportObject(peer_mdb, Integer.parseInt(args[0]) + 100);
+                        Interface exported_mc = (Interface) UnicastRemoteObject.exportObject(peer_mc, Integer.parseInt(args[0]) + 1100);
+
+                        Registry registry = LocateRegistry.getRegistry();
+
+                        registry.bind(args[0] + 100, exported_mdb);
+                        registry.bind(args[0] + 1100, exported_mc);
+                        System.err.println("Client ready");
+                        break;
+                }
+            } else {
+                peer_mdb.setIsInitiator(false);
+                peer_mc.setIsInitiator(false);
+            }
 
 //        registry.unbind(args[0]);
-      } catch (Exception e) {
+        } catch (Exception e) {
 
-          System.err.println("Server exception: " + e.toString());
-          e.printStackTrace();
-      }
+            System.err.println("Server exception: " + e.toString());
+            e.printStackTrace();
+        }
 
     }
 

@@ -131,7 +131,9 @@ public class FileClass implements Runnable{
 
                     if (tries == 6) {
                         System.out.println("Exceed maximum PUTCHUNK tries for chunk #" + numberChunks);
-                        System.exit(1);
+                        out.close();
+                        fileWriter.close();
+                        return;
                     }
 
                     //System.out.println("@@@@@@@@@@@@  Byte Array length " + data.length);

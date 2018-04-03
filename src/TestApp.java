@@ -18,13 +18,13 @@ public class TestApp{
 
             switch (args[1]) {
                 case "BACKUP":
-                    remote_object_mdb.backupFile("../assets/" + args[2], Integer.parseInt(args[3]));
+                    remote_object_mdb.backupFile(args[2], Integer.parseInt(args[3]));
                     break;
                 case "RESTORE":
                     remote_object_mc.restoreFile(args[2]);
                     break;
                 case "DELETE":
-                    remote_object_mc.deleteFile("../assets/" + args[2]);
+                    remote_object_mc.deleteFile(args[2]);
                     break;
                 case "RECLAIM":
                     remote_object_mc.reclaimSpace(Integer.parseInt(args[2]));
