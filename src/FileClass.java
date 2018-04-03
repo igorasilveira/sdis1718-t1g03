@@ -131,7 +131,9 @@ public class FileClass implements Runnable{
 
                     if (tries == 6) {
                         System.out.println("Exceed maximum PUTCHUNK tries for chunk #" + numberChunks);
-                        System.exit(1);
+                        out.close();
+                        fileWriter.close();
+                        return;
                     }
 
                     //System.out.println("@@@@@@@@@@@@  Byte Array length " + data.length);
@@ -160,7 +162,7 @@ public class FileClass implements Runnable{
                           ObjectInputStream ois = new ObjectInputStream(bais);
                           Message messageReceived = (Message) ois.readObject();
 
-                          //System.out.println("******************" + messageReceived.getMessageType());
+                          System.out.println("******************" + messageReceived.getMessageType());
 
                           if (messageReceived.getMessageType().equals("STORED")){
                             out.print(messageReceived.getSenderId() + " ");
@@ -170,7 +172,7 @@ public class FileClass implements Runnable{
                             currentRepDegree++;
                           }
                       } catch (SocketTimeoutException e) {
-                          //System.out.println("Waiting for chunk storing confirmations.");
+                          System.out.println("Waiting for chunk storing confirmations.");
                       } catch (ClassNotFoundException e) {
                           e.printStackTrace();
                       }
@@ -194,8 +196,9 @@ public class FileClass implements Runnable{
 
         int sizeOfFiles = 1024 * 64;// 64KB
         byte[] buffer = new byte[sizeOfFiles];
+        System.out.println("CHUNKS " + numberChunks);
 
-        try (FileOutputStream fos = new FileOutputStream(file, true);
+        try (
             ByteArrayOutputStream baios = new ByteArrayOutputStream()) {
 
             while (readChunks < numberChunks - 1) {
@@ -220,6 +223,7 @@ public class FileClass implements Runnable{
 
                 boolean waitChunk = true;
                 while (waitChunk) {
+            FileOutputStream fos = new FileOutputStream(file, true);
                     DatagramPacket recv = new DatagramPacket(buffer, buffer.length);
 
                     try {
@@ -234,6 +238,7 @@ public class FileClass implements Runnable{
                                 //System.out.println("Confirmation response: received CHUNK from " + messageReceived.getSenderId());
                                 System.out.println("Received: " + messageReceived.getMessageType() + " from Peer " + messageReceived.getSenderId() + " for file with id " + messageReceived.getFileId() + ".");
                                 fos.write(messageReceived.getBody(), 0, messageReceived.getBody().length);
+                                fos.close();
                                 waitChunk = false;
                             }
                         }
@@ -386,6 +391,7 @@ public class FileClass implements Runnable{
           switch (currentProtocol) {
               case BACKUP:
                 Peer.socket_mc.send(packet);
+                System.out.println("@@@@@ SENT STORED");
                 break;
               case RESTORE:
                 Peer.socket_mdr.send(packet);
