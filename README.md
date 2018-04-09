@@ -11,7 +11,7 @@ work correctly.
   - Move to the sources directory
   - Run the command *javac* **.java* to compile
   - Create the registry with the command *start rmiregistry*
-  - On all windows except one, run *java Client < id> *
+  - On all windows except one, run *java* *Client* *< id>*
   - On the last command line run *java TestApp < peer_ap> < op> < opnds>* as specified in the project guidelines
 
 ### Developed by the students:
